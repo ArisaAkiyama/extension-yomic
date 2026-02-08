@@ -67,21 +67,49 @@ namespace Yomic.Extensions.Mangabats
             }
             
             // Pagination - logic remains roughly same or check for "page-last"
+            // Pagination - Fix for Mangabats (uses underscores in classes often)
             int totalPages = page;
-            var lastPageNode = doc.DocumentNode.SelectSingleNode("//a[contains(@class, 'page-last')]");
+            
+            // Try 'page_last' (underscore) which is what current site uses
+            var lastPageNode = doc.DocumentNode.SelectSingleNode("//a[contains(@class, 'page_last')]");
+            
+            // Fallback to 'page-last' (hyphen) just in case
+            if (lastPageNode == null) 
+                lastPageNode = doc.DocumentNode.SelectSingleNode("//a[contains(@class, 'page-last')]");
+            
+            // Fallback to finding "Last" text
+            if (lastPageNode == null)
+                lastPageNode = doc.DocumentNode.SelectSingleNode("//a[contains(text(), 'Last')]");
+
             if (lastPageNode != null)
             {
                 string href = lastPageNode.GetAttributeValue("href", "");
                 if (!string.IsNullOrEmpty(href))
                 {
-                    var parts = href.Split('/');
-                    if (int.TryParse(parts.Last(), out int last)) totalPages = last;
+                    // Clean URL (remove 'page=')
+                    var match = System.Text.RegularExpressions.Regex.Match(href, @"page=(\d+)");
+                    if (match.Success)
+                    {
+                         if (int.TryParse(match.Groups[1].Value, out int last)) totalPages = last;
+                    }
+                    else
+                    {
+                        // Fallback: split by '/'
+                        var parts = href.Split('/');
+                         // e.g. .../hot-manga/3057 ? No, url param usually.
+                         // But if path based:
+                         if (int.TryParse(parts.Last(), out int last)) totalPages = last;
+                    }
                 }
             }
             else
             {
-                 // Check 'Next' button
-                 if (doc.DocumentNode.SelectSingleNode("//a[contains(@class, 'page-next')]") != null) totalPages = page + 1;
+                 // Check 'Next' button (usually has text "Next" or class "page_next" / "page-next")
+                 var nextNode = doc.DocumentNode.SelectSingleNode("//a[contains(@class, 'page_next')]") 
+                                ?? doc.DocumentNode.SelectSingleNode("//a[contains(@class, 'page-next')]")
+                                ?? doc.DocumentNode.SelectSingleNode("//a[contains(text(), 'Next')]");
+                                
+                 if (nextNode != null) totalPages = page + 1;
             }
 
             return (mangaList, totalPages);
