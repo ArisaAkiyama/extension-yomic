@@ -4,10 +4,10 @@ Collection of source extensions for [Yomic Application](https://github.com/Arisa
 
 ## How to Install
 
-1. Download **[Extension.zip](Extension.zip)** from this repository.
+1. Download **[Extensions.zip](Extensions.zip)** from this repository.
 2. Extract the contents to your Yomic Extensions folder.
    
-   *(Usually located at `%AppData%/Yomic/Extensions` or the `Extensions` folder next to your Yomic executable)*
+   *(Usually located at `%AppData%/Yomic/Plugins` or the `Plugins` folder next to your Yomic executable)*
 
 ### Available Extensions
 
@@ -18,6 +18,7 @@ Collection of source extensions for [Yomic Application](https://github.com/Arisa
 | **Komiku** | Latest | Baca komik Bahasa Indonesia dari Komiku |
 | **Mangabats** | Latest | Read English manga from Mangabats |
 | **MangaDex** | Latest | Read manga from MangaDex |
+| **Weebcentral** | Latest | Read English manga from Weebcentral |
 
 ## Development
 
