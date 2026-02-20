@@ -19,6 +19,8 @@ Collection of source extensions for [Yomic Application](https://github.com/Arisa
 | **Mangabats** | Latest | Read English manga from Mangabats |
 | **MangaDex** | Latest | Read manga from MangaDex |
 | **Weebcentral** | Latest | Read English manga from Weebcentral |
+| **WestManga** | Latest | Baca komik Bahasa Indonesia dari WestManga |
+| **Softkomik** | Latest | Baca komik Bahasa Indonesia dari Softkomik |
 
 ## Development
 
