@@ -1,11 +1,11 @@
-# Yomic Extensions
+# Extension Yomic
 
 Official extension collection for **Yomic**, a premium desktop manga reader built with Avalonia UI.
 These extensions provide content sources for the application.
 
 ## 🧩 Available Extensions
 
-**[📥 Download All Extensions (Extensions.zip)](../Extensions.zip)**
+**[📥 Download All Extensions (extension.zip)](../extension.zip)**
 
 | Extension | Language | Target Website | Source Code |
 |-----------|:--------:|----------------|-------------|
