@@ -16,11 +16,14 @@ Collection of source extensions for [Yomic Application](https://github.com/Arisa
 | **Kiryuu** | Latest | Baca komik Bahasa Indonesia dari Kiryuu |
 | **KomikCast** | Latest | Baca komik Bahasa Indonesia dari KomikCast |
 | **Komiku** | Latest | Baca komik Bahasa Indonesia dari Komiku |
+| **Maid** | Latest | Baca komik Bahasa Indonesia dari maid.my.id |
 | **Mangabats** | Latest | Read English manga from Mangabats |
 | **MangaDex** | Latest | Read manga from MangaDex |
+| **ManhwaIndo** | Latest | Baca komik Bahasa Indonesia dari ManhwaIndo |
+| **NHentai** | Latest | Baca doujin offline dari NHentai |
+| **Softkomik** | Latest | Baca komik Bahasa Indonesia dari Softkomik |
 | **Weebcentral** | Latest | Read English manga from Weebcentral |
 | **WestManga** | Latest | Baca komik Bahasa Indonesia dari WestManga |
-| **Softkomik** | Latest | Baca komik Bahasa Indonesia dari Softkomik |
 
 ## Development
 
