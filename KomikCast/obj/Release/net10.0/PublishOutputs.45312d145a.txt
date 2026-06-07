@@ -1,0 +1,14 @@
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Yomic.Extensions.KomikCast.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Yomic.Extensions.KomikCast.deps.json
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Yomic.Extensions.KomikCast.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\HtmlAgilityPack.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Microsoft.Extensions.DependencyInjection.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Microsoft.Extensions.Logging.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Microsoft.Extensions.Logging.Abstractions.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Microsoft.Extensions.Options.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Microsoft.Extensions.Primitives.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Newtonsoft.Json.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\PuppeteerSharp.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Yomic.Shared.dll
+D:\Project\DesktopKomik\Yomic\Extensions\KomikCast\bin\Release\net10.0\publish\Yomic.Shared.pdb

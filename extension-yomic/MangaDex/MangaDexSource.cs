@@ -12,10 +12,19 @@ namespace Yomic.Extensions.MangaDex
 {
     public class MangaDexSource : HttpSource, IFilterableMangaSource
     {
-        public override long Id => 5; // Unique ID for MangaDex
         public override string Name => "MangaDex";
         public override string BaseUrl => "https://api.mangadex.org";
         public string WebBaseUrl => "https://mangadex.org";
+
+        public override string Version => "1.3.0";
+        public override string IconUrl => "https://www.google.com/s2/favicons?domain=mangadex.org&sz=128";
+        public override string Description => "Read Manga Online for Free";
+        public override string Author => "Yomic Desktop";
+        public override string IconBackground => "#FF6740";
+        public override string IconForeground => "White";
+        
+        // MangaDex is often ISP-blocked, so it requires VPN proxy when enabled
+        public override bool RequiresProxy => true;
 
         // Rate limiting: 3 requests per second (same as Mihon)
         private static readonly SemaphoreSlim _rateLimiter = new SemaphoreSlim(3, 3);
@@ -119,28 +128,7 @@ namespace Yomic.Extensions.MangaDex
             return (ParseMangaList(json), totalPages);
         }
 
-        public async Task<(List<Manga> Items, int TotalPages)> GetFilteredMangaAsync(int page, int statusFilter = 0, int typeFilter = 0)
-        {
-            int limit = 20;
-            int offset = (page - 1) * limit;
-            
-            // Filter manga by available translated language
-            string query = $"{BaseUrl}/manga?limit={limit}&offset={offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&availableTranslatedLanguage[]={SelectedLanguage}";
-            
-            // Status mapping: 1=Ongoing, 2=Completed
-            if (statusFilter == 1) query += "&status[]=ongoing";
-            else if (statusFilter == 2) query += "&status[]=completed";
-            
-            // Type not directly mapped for MangaDex in this context without more info
-            
-            var json = await RateLimitedGetJsonAsync(query);
-            if (json == null) return (new List<Manga>(), 1);
-            
-            int total = json["total"]?.ToObject<int>() ?? 0;
-            int totalPages = (int)Math.Ceiling((double)total / limit);
 
-            return (ParseMangaList(json), totalPages);
-        }
 
         public override async Task<List<Manga>> GetSearchMangaAsync(string query, int page)
         {

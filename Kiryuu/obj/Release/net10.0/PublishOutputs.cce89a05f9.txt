@@ -1,0 +1,14 @@
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Yomic.Extensions.Kiryuu.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Yomic.Extensions.Kiryuu.deps.json
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Yomic.Extensions.Kiryuu.pdb
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\HtmlAgilityPack.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Microsoft.Extensions.DependencyInjection.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Microsoft.Extensions.Logging.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Microsoft.Extensions.Logging.Abstractions.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Microsoft.Extensions.Options.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Microsoft.Extensions.Primitives.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Newtonsoft.Json.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\PuppeteerSharp.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Yomic.Shared.dll
+d:\Project\DesktopKomik\Yomic\Plugins\Kiryuu\Yomic.Shared.pdb

@@ -11,11 +11,17 @@ namespace Yomic.Extensions.Komiku
 {
     public class KomikuSource : HttpSource, IFilterableMangaSource
     {
-        public override long Id => 3; 
         public override string Name => "Komiku";
         public override string BaseUrl => "https://komiku.org";
         public override string Language => "ID";
         public override bool IsHasMorePages => true;
+
+        public override string Version => "1.2.0";
+        public override string IconUrl => "https://www.google.com/s2/favicons?domain=komiku.org&sz=128";
+        public override string Description => "Baca Manga dan Komik Bahasa Indonesia";
+        public override string Author => "Yomic Desktop";
+        public override string IconBackground => "#2596be";
+        public override string IconForeground => "White";
 
 
 
@@ -83,6 +89,16 @@ namespace Yomic.Extensions.Komiku
                         // CLEAN TITLES
                         title = CleanTitle(title);
 
+                        // Parse Status Badge
+                        var statusNode = node.SelectSingleNode(".//span[contains(@class, 'status')] | .//div[contains(@class, 'tpe1_inf')]//b");
+                        int mangaStatus = Manga.UNKNOWN;
+                        if (statusNode != null)
+                        {
+                            string rawStatus = statusNode.InnerText.Trim().ToLower();
+                            if (rawStatus.Contains("ongoing")) mangaStatus = Manga.ONGOING;
+                            else if (rawStatus.Contains("completed")) mangaStatus = Manga.COMPLETED;
+                        }
+
                         if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(title))
                         {
                             list.Add(new Manga
@@ -90,7 +106,8 @@ namespace Yomic.Extensions.Komiku
                                 Title = title,
                                 Url = id,
                                 ThumbnailUrl = cover,
-                                Source = this.Id
+                                Source = this.Id,
+                                Status = mangaStatus
                             });
 
                             // DEBUG: Log first 3 items
@@ -118,7 +135,7 @@ namespace Yomic.Extensions.Komiku
             
             var doc = await GetHtmlAsync(url);
             var list = new List<Manga>();
-            int totalPages = 134; // Default
+            int totalPages = 134; // Accurate max limit for /daftar-komik/
 
             Console.WriteLine($"[Komiku] Fetching manga list page {page}: {url}");
 
@@ -234,12 +251,24 @@ namespace Yomic.Extensions.Komiku
                             coverParent = coverParent.ParentNode;
                         }
 
+                        // Parse Status Badge (sometimes wrapped in span inside link or parent)
+                        var statusNode = link.SelectSingleNode(".//span[contains(@class, 'status')]") 
+                                         ?? coverParent?.SelectSingleNode(".//span[contains(@class, 'status')] | .//div[contains(@class, 'tpe1_inf')]//b");
+                        int mangaStatus = Manga.UNKNOWN;
+                        if (statusNode != null)
+                        {
+                            string rawStatus = statusNode.InnerText.Trim().ToLower();
+                            if (rawStatus.Contains("ongoing")) mangaStatus = Manga.ONGOING;
+                            else if (rawStatus.Contains("completed")) mangaStatus = Manga.COMPLETED;
+                        }
+
                         list.Add(new Manga
                         {
                             Title = title,
                             Url = id, // Now full relative path
                             ThumbnailUrl = cover,
-                            Source = this.Id
+                            Source = this.Id,
+                            Status = mangaStatus
                         });
                     }
                     catch (Exception ex)
@@ -253,157 +282,7 @@ namespace Yomic.Extensions.Komiku
             return (list, totalPages);
         }
 
-        /// <summary>
-        /// Get filtered manga list from API with status and type filters
-        /// Status: 1=Ongoing, 2=Completed
-        /// Type: manga, manhwa, manhua
-        /// </summary>
-        public async Task<(List<Manga> Items, int TotalPages)> GetFilteredMangaAsync(int page, int statusFilter = 0, int typeFilter = 0)
-        {
-            // Use API endpoint instead of pustaka (which uses HTMX)
-            // API accepts: status=ongoing/completed, type=manga/manhwa/manhua
-            var queryParams = new List<string>();
-            
-            // Status filter (1=Ongoing, 2=Completed) - API uses text values
-            if (statusFilter == 1)
-            {
-                queryParams.Add("status=ongoing");
-            }
-            else if (statusFilter == 2)
-            {
-                queryParams.Add("status=completed");
-            }
-            
-            // Type filter (1=Manga, 2=Manhwa, 3=Manhua)
-            if (typeFilter > 0)
-            {
-                string tipe = typeFilter switch
-                {
-                    1 => "manga",
-                    2 => "manhwa",
-                    3 => "manhua",
-                    _ => ""
-                };
-                if (!string.IsNullOrEmpty(tipe))
-                {
-                    queryParams.Add($"type={tipe}");
-                }
-            }
-            
-            string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
-            
-            // Use API endpoint
-            string url = page == 1 
-                ? $"https://api.komiku.org/manga/{queryString}"
-                : $"https://api.komiku.org/manga/page/{page}/{queryString}";
 
-            var doc = await GetHtmlAsync(url);
-            var list = new List<Manga>();
-            int totalPages = 100;
-
-            Console.WriteLine($"[Komiku] Fetching filtered manga page {page}: {url}");
-
-            // Try to extract total pages from pagination
-            var pageLinks = doc.DocumentNode.SelectNodes("//a[contains(@class, 'page-numbers')]");
-            if (pageLinks != null)
-            {
-                foreach (var link in pageLinks)
-                {
-                    var text = link.InnerText.Trim();
-                    if (int.TryParse(text, out int pageNum) && pageNum > totalPages)
-                    {
-                        totalPages = pageNum;
-                    }
-                }
-            }
-
-            // Parse manga items from pustaka page - same structure as Latest
-            var nodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'bge')]");
-            
-            if (nodes != null)
-            {
-                var seenIds = new HashSet<string>();
-                
-                foreach (var node in nodes)
-                {
-                    try
-                    {
-                        var imgNode = node.SelectSingleNode(".//div[contains(@class, 'bgei')]//img");
-                        var linkNode = node.SelectSingleNode(".//div[contains(@class, 'kan')]/a") ?? node.SelectSingleNode(".//div[contains(@class, 'bgei')]/a");
-                        var titleNode = node.SelectSingleNode(".//div[contains(@class, 'kan')]//h3");
-
-                        if (linkNode == null) continue;
-
-                        var href = linkNode.GetAttributeValue("href", "");
-                        if (string.IsNullOrEmpty(href) || !href.Contains("/manga/")) continue;
-
-                        var id = href.TrimEnd('/').Split('/').Last();
-                        if (string.IsNullOrEmpty(id) || seenIds.Contains(id)) continue;
-
-                        seenIds.Add(id);
-
-                        var title = titleNode?.InnerText?.Trim() ?? linkNode?.InnerText?.Trim() ?? "";
-                        title = CleanTitle(title);
-                        
-                        if (string.IsNullOrEmpty(title))
-                        {
-                            title = id.Replace("-", " ");
-                            title = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(title);
-                        }
-
-                        string cover = "";
-                        if (imgNode != null)
-                        {
-                            cover = imgNode.GetAttributeValue("src", "") ?? "";
-                            if (string.IsNullOrEmpty(cover) || cover.Contains("lazy.jpg") || cover.Contains("data:image"))
-                            {
-                                cover = imgNode.GetAttributeValue("data-src", "") ?? "";
-                            }
-                        }
-
-                        // Set status based on filter
-                        int mangaStatus = statusFilter switch
-                        {
-                            1 => Manga.ONGOING,
-                            2 => Manga.COMPLETED,
-                            _ => Manga.UNKNOWN
-                        };
-
-                        // Use href directly (already has full path like /manga/xxx/)
-                        string mangaUrl = href;
-                        if (!mangaUrl.StartsWith("/"))
-                        {
-                            // Extract path from full URL if needed
-                            try
-                            {
-                                var uri = new Uri(href);
-                                mangaUrl = uri.AbsolutePath;
-                            }
-                            catch
-                            {
-                                mangaUrl = $"/manga/{id}/";
-                            }
-                        }
-
-                        list.Add(new Manga
-                        {
-                            Title = title,
-                            Url = mangaUrl,
-                            ThumbnailUrl = cover,
-                            Source = this.Id,
-                            Status = mangaStatus
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[Komiku] Filtered item parse error: {ex.Message}");
-                    }
-                }
-            }
-
-            Console.WriteLine($"[Komiku] Filtered: Found {list.Count} manga, Total Pages: {totalPages}");
-            return (list, totalPages);
-        }
 
         public async Task<(List<Manga> Items, int TotalPages)> GetLatestMangaAsync(int page)
         {
@@ -416,9 +295,9 @@ namespace Yomic.Extensions.Komiku
 
             var doc = await GetHtmlAsync(url);
             var list = new List<Manga>();
-            int totalPages = 1000;
+            int totalPages = 150; // Accurate max limit for API
             
-            Console.WriteLine($"[Komiku] Fetching Latest Updates (WEB) page {page}: {url}");
+            Console.WriteLine($"[Komiku] Fetching latest manga page {page}: {url}");
 
             // Selector for Pustaka Grid Cards (Generic Layout)
             var nodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'bge')]");
@@ -488,6 +367,16 @@ namespace Yomic.Extensions.Komiku
                                 }
                             }
 
+                            // Parse Status Badge
+                            var statusNode = node.SelectSingleNode(".//span[contains(@class, 'status')] | .//div[contains(@class, 'tpe1_inf')]//b");
+                            int mangaStatus = Manga.UNKNOWN;
+                            if (statusNode != null)
+                            {
+                                string rawStatus = statusNode.InnerText.Trim().ToLower();
+                                if (rawStatus.Contains("ongoing")) mangaStatus = Manga.ONGOING;
+                                else if (rawStatus.Contains("completed")) mangaStatus = Manga.COMPLETED;
+                            }
+
                             if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(title))
                             {
                                 list.Add(new Manga
@@ -496,7 +385,8 @@ namespace Yomic.Extensions.Komiku
                                     Url = id,
                                     ThumbnailUrl = cover,
                                     Source = this.Id,
-                                    LastUpdate = lastUpdate
+                                    LastUpdate = lastUpdate,
+                                    Status = mangaStatus
                                 });
                             }
                         }
@@ -1137,7 +1027,7 @@ namespace Yomic.Extensions.Komiku
 
         private async Task<HtmlDocument> GetHtmlAsync(string url)
         {
-            var html = await GetStringAsync(url);
+            var html = await Client.GetStringAsync(url);
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
             return doc;

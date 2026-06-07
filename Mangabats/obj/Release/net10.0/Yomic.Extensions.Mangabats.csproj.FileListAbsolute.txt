@@ -1,0 +1,16 @@
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\bin\Release\net10.0\Yomic.Extensions.Mangabats.deps.json
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\bin\Release\net10.0\Yomic.Extensions.Mangabats.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\bin\Release\net10.0\Yomic.Extensions.Mangabats.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\bin\Release\net10.0\Yomic.Shared.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\bin\Release\net10.0\Yomic.Shared.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.csproj.AssemblyReference.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.AssemblyInfoInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.AssemblyInfo.cs
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.csproj.CoreCompileInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.sourcelink.json
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Ex.FF25DD5A.Up2Date
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\refint\Yomic.Extensions.Mangabats.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\Yomic.Extensions.Mangabats.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Mangabats\obj\Release\net10.0\ref\Yomic.Extensions.Mangabats.dll

@@ -1,0 +1,16 @@
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\bin\Debug\net10.0\Yomic.Extensions.Weebcentral.deps.json
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\bin\Debug\net10.0\Yomic.Extensions.Weebcentral.dll
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\bin\Debug\net10.0\Yomic.Extensions.Weebcentral.pdb
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\bin\Debug\net10.0\Yomic.Shared.dll
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\bin\Debug\net10.0\Yomic.Shared.pdb
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.csproj.AssemblyReference.cache
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.GeneratedMSBuildEditorConfig.editorconfig
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.AssemblyInfoInputs.cache
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.AssemblyInfo.cs
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.csproj.CoreCompileInputs.cache
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.sourcelink.json
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Ex.76EF8B72.Up2Date
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.dll
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\refint\Yomic.Extensions.Weebcentral.dll
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\Yomic.Extensions.Weebcentral.pdb
+d:\Project\DesktopKomik\Yomic\Extensions\Weebcentral\obj\Debug\net10.0\ref\Yomic.Extensions.Weebcentral.dll

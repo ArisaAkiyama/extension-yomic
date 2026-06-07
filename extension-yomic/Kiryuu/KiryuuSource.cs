@@ -15,11 +15,15 @@ namespace Yomic.Extensions.Kiryuu
 {
     public class KiryuuSource : HttpSource, IFilterableMangaSource
     {
-        public override long Id => 20;
         public override string Name => "Kiryuu";
-        public override string BaseUrl => "https://kiryuu03.com";
+        public override string BaseUrl => "https://v5.kiryuu.to";
         public override string Language => "ID";
         public override bool IsHasMorePages => true;
+
+        public override string Version => "1.2.0";
+        public override string IconUrl => "https://www.google.com/s2/favicons?domain=v5.kiryuu.to&sz=128";
+        public override string Description => "Baca Manga Bahasa Indonesia di Kiryuu";
+        public override string Author => "Yomic Desktop";
 
         private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
@@ -56,19 +60,46 @@ namespace Yomic.Extensions.Kiryuu
         {
              string url = page == 1 ? $"{BaseUrl}/latest/" : $"{BaseUrl}/latest/?the_page={page}";
              var items = await ScrapeLatestManga(url);
-             return (items, 999);
+             int totalPages = await GetActualTotalPagesAsync();
+             return (items, totalPages);
         }
 
         public async Task<(List<Manga> Items, int TotalPages)> GetMangaListAsync(int page)
         {
             var items = await GetPopularMangaAsync(page);
-            return (items, 999); 
+            int totalPages = await GetActualTotalPagesAsync();
+            return (items, totalPages); 
         }
 
-        public async Task<(List<Manga> Items, int TotalPages)> GetFilteredMangaAsync(int page, int sort, int status)
+        private int _cachedTotalPages = 999;
+        private DateTime _lastCacheTime = DateTime.MinValue;
+
+        private async Task<int> GetActualTotalPagesAsync()
         {
-             return await GetLatestMangaAsync(page);
+            if ((DateTime.Now - _lastCacheTime).TotalHours < 1) 
+                 return _cachedTotalPages;
+
+            try
+            {
+                // Fetch the total items/pages using Kiryuu's WP REST API 
+                // Using per_page=32 because the HTML layout shows ~32 cards per page
+                var request = new HttpRequestMessage(HttpMethod.Head, $"{BaseUrl}/wp-json/wp/v2/manga?per_page=32");
+                var response = await Client.SendAsync(request);
+                if (response.Headers.TryGetValues("X-WP-TotalPages", out var values))
+                {
+                    if (int.TryParse(values.FirstOrDefault(), out int total))
+                    {
+                        _cachedTotalPages = total > 0 ? total : 999;
+                        _lastCacheTime = DateTime.Now;
+                    }
+                }
+            }
+            catch { }
+
+            return _cachedTotalPages;
         }
+
+
 
         // --- Project Scraper (Card-First, No Duplicates) ---
         private async Task<List<Manga>> ScrapeProjectManga(string url)
@@ -287,26 +318,43 @@ namespace Yomic.Extensions.Kiryuu
 
         public override async Task<List<Chapter>> GetChapterListAsync(string mangaId)
         {
-             // 1. Resolve to Numeric ID if slug/url is passed
+             // 1. Resolve to Numeric ID and Slug
+             string mangaSlug = mangaId;
              if (!long.TryParse(mangaId, out _))
             {
                 string slug = mangaId.TrimEnd('/').Split('/').Last();
+                mangaSlug = slug;
                 string lookupUrl = $"{BaseUrl}/wp-json/wp/v2/manga?slug={slug}";
                 try 
                 {
                     var json = await Client.GetStringAsync(lookupUrl);
                     var list = JsonSerializer.Deserialize<List<WpManga>>(json, _jsonOptions);
                     if(list != null && list.Count > 0) 
+                    {
                         mangaId = list[0].Id.ToString();
+                        mangaSlug = list[0].Slug ?? slug;
+                    }
                     else 
                         return new List<Chapter>();
                 } 
                 catch { return new List<Chapter>(); }
             }
+            else
+            {
+                // We have a numeric ID, resolve the slug for the fallback search
+                try
+                {
+                    var json = await Client.GetStringAsync($"{BaseUrl}/wp-json/wp/v2/manga/{mangaId}");
+                    var wpManga = JsonSerializer.Deserialize<WpManga>(json, _jsonOptions);
+                    if (wpManga != null) mangaSlug = wpManga.Slug ?? mangaId;
+                }
+                catch { }
+            }
 
-            // 2. Fetch Chapters using Numeric ID - Use high per_page to get all chapters
+            // 2. Primary: Fetch Chapters using kiru/v1 API
             string url = $"{BaseUrl}/wp-json/kiru/v1/chapter?parent_id={mangaId}&per_page=2000";
             var chapters = new List<Chapter>();
+            var seenIds = new HashSet<long>();
             try
             {
                 var json = await Client.GetStringAsync(url);
@@ -315,6 +363,7 @@ namespace Yomic.Extensions.Kiryuu
                 {
                     foreach (var kc in kiruChapters)
                     {
+                        seenIds.Add(kc.Id);
                         var chapter = new Chapter
                         {
                             Id = kc.Id, 
@@ -324,7 +373,6 @@ namespace Yomic.Extensions.Kiryuu
                             ChapterNumber = ParseFloat(kc.Number)
                         };
 
-                        // Use actual date if available, otherwise fallback to reasonable guess
                         if (!string.IsNullOrEmpty(kc.Date) && DateTimeOffset.TryParse(kc.Date, out var dt))
                             chapter.DateUpload = dt.ToUnixTimeMilliseconds();
                         else
@@ -336,8 +384,66 @@ namespace Yomic.Extensions.Kiryuu
             }
             catch { }
 
-            // 3. Sort numerically descending
-            return chapters.OrderByDescending(c => c.ChapterNumber).ToList();
+            // 3. Fallback: Use WP REST API to find missing chapters
+            // The kiru/v1 API has a known bug where older chapters aren't indexed.
+            // wp/v2/chapter?search= reliably finds ALL chapters.
+            try
+            {
+                // Fetch manga title for the search query
+                string searchQuery = mangaSlug.Replace("-", " ");
+                string wpUrl = $"{BaseUrl}/wp-json/wp/v2/chapter?search={Uri.EscapeDataString(searchQuery)}&per_page=100";
+                var wpJson = await Client.GetStringAsync(wpUrl);
+                var wpChapters = JsonSerializer.Deserialize<List<WpChapterPost>>(wpJson, _jsonOptions);
+
+                if (wpChapters != null)
+                {
+                    // Filter by slug prefix to avoid false positives from other manga
+                    string slugPrefix = mangaSlug + "-chapter";
+                    foreach (var wpc in wpChapters)
+                    {
+                        if (seenIds.Contains(wpc.Id)) continue;
+                        if (string.IsNullOrEmpty(wpc.Slug)) continue;
+                        if (!wpc.Slug.StartsWith(slugPrefix, StringComparison.OrdinalIgnoreCase)) continue;
+
+                        seenIds.Add(wpc.Id);
+
+                        // Extract chapter number from slug (e.g. "manga-name-chapter-01" -> "01")
+                        string chapterNum = wpc.Slug.Substring(slugPrefix.Length).TrimStart('-');
+                        string title = wpc.Title?.Rendered ?? $"Chapter {chapterNum}";
+                        title = System.Net.WebUtility.HtmlDecode(title);
+
+                        var chapter = new Chapter
+                        {
+                            Id = wpc.Id,
+                            MangaId = long.Parse(mangaId),
+                            Name = title,
+                            Url = wpc.Id.ToString(),
+                            ChapterNumber = ParseFloat(chapterNum)
+                        };
+
+                        if (!string.IsNullOrEmpty(wpc.Date) && DateTimeOffset.TryParse(wpc.Date, out var dt))
+                            chapter.DateUpload = dt.ToUnixTimeMilliseconds();
+                        else
+                            chapter.DateUpload = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+                        chapters.Add(chapter);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Kiryuu] WP Fallback Error: {ex.Message}");
+            }
+
+            // 4. Deduplicate by ChapterNumber (keep the one with higher Id = newer)
+            // This handles cases where the same chapter exists with different slugs (e.g. "chapter-1" and "chapter-01")
+            chapters = chapters
+                .GroupBy(c => c.ChapterNumber)
+                .Select(g => g.OrderByDescending(c => c.Id).First())
+                .OrderByDescending(c => c.ChapterNumber)
+                .ToList();
+
+            return chapters;
         }
 
         public override async Task<List<string>> GetPageListAsync(string chapterId)
@@ -483,6 +589,13 @@ namespace Yomic.Extensions.Kiryuu
             [JsonPropertyName("content")] public string Content { get; set; }
             [JsonPropertyName("date")] public string Date { get; set; }
             [JsonPropertyName("modified")] public string Modified { get; set; }
+        }
+
+        private class WpChapterPost {
+            [JsonPropertyName("id")] public long Id { get; set; }
+            [JsonPropertyName("slug")] public string Slug { get; set; }
+            [JsonPropertyName("title")] public WpRendered Title { get; set; }
+            [JsonPropertyName("date")] public string Date { get; set; }
         }
     }
 }

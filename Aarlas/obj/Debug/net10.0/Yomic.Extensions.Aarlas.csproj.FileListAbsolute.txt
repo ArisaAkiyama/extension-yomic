@@ -1,0 +1,16 @@
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.csproj.AssemblyReference.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.AssemblyInfoInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.AssemblyInfo.cs
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.csproj.CoreCompileInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.sourcelink.json
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\bin\Debug\net10.0\Yomic.Extensions.Aarlas.deps.json
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\bin\Debug\net10.0\Yomic.Extensions.Aarlas.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\bin\Debug\net10.0\Yomic.Extensions.Aarlas.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\bin\Debug\net10.0\Yomic.Shared.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\bin\Debug\net10.0\Yomic.Shared.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Ex.85FC8D67.Up2Date
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\refint\Yomic.Extensions.Aarlas.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\Yomic.Extensions.Aarlas.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Aarlas\obj\Debug\net10.0\ref\Yomic.Extensions.Aarlas.dll

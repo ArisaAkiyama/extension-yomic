@@ -1,0 +1,16 @@
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\bin\Debug\net10.0\Yomic.Extensions.Kuromanga.deps.json
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\bin\Debug\net10.0\Yomic.Extensions.Kuromanga.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\bin\Debug\net10.0\Yomic.Extensions.Kuromanga.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\bin\Debug\net10.0\Yomic.Shared.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\bin\Debug\net10.0\Yomic.Shared.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.csproj.AssemblyReference.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.AssemblyInfoInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.AssemblyInfo.cs
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.csproj.CoreCompileInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.sourcelink.json
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Ex.DEC50DDA.Up2Date
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\refint\Yomic.Extensions.Kuromanga.dll
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\Yomic.Extensions.Kuromanga.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\Kuromanga\obj\Debug\net10.0\ref\Yomic.Extensions.Kuromanga.dll

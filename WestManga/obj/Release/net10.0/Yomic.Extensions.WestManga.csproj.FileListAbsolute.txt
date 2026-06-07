@@ -1,0 +1,16 @@
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\bin\Release\net10.0\Yomic.Extensions.WestManga.deps.json
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\bin\Release\net10.0\Yomic.Extensions.WestManga.dll
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\bin\Release\net10.0\Yomic.Extensions.WestManga.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\bin\Release\net10.0\Yomic.Shared.dll
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\bin\Release\net10.0\Yomic.Shared.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.csproj.AssemblyReference.cache
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.AssemblyInfoInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.AssemblyInfo.cs
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.csproj.CoreCompileInputs.cache
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.sourcelink.json
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Ex.69EBBD00.Up2Date
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.dll
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\refint\Yomic.Extensions.WestManga.dll
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\Yomic.Extensions.WestManga.pdb
+D:\Project\DesktopKomik\Yomic\Extensions\WestManga\obj\Release\net10.0\ref\Yomic.Extensions.WestManga.dll
