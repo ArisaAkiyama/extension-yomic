@@ -2,12 +2,7 @@
 
 Collection of source extensions for [Yomic Application](https://github.com/ArisaAkiyama/yomic).
 
-## How to Install
 
-1. Download **[extension.zip](extension.zip)** from this repository.
-2. Extract the contents to your Yomic Extensions folder.
-   
-   *(Usually located at `%AppData%/Yomic/Plugins` or the `Plugins` folder next to your Yomic executable)*
 
 ### Available Extensions
 
