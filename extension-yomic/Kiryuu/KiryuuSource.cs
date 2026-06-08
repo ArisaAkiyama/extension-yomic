@@ -17,7 +17,7 @@ namespace Yomic.Extensions.Kiryuu
     {
         public override string Name => "Kiryuu";
         public override string BaseUrl => "https://v5.kiryuu.to";
-        public override string Language => "ID";
+        public override string Language => "id";
         public override bool IsHasMorePages => true;
 
         public override string Version => "1.2.0";

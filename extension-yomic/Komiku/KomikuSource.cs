@@ -13,7 +13,7 @@ namespace Yomic.Extensions.Komiku
     {
         public override string Name => "Komiku";
         public override string BaseUrl => "https://komiku.org";
-        public override string Language => "ID";
+        public override string Language => "id";
         public override bool IsHasMorePages => true;
 
         public override string Version => "1.2.0";

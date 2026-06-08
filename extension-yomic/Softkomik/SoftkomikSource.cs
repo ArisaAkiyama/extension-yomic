@@ -19,7 +19,7 @@ namespace Yomic.Extensions
         };
 
         public override string Version => "1.0.2";
-        public override string Language => "ID";
+        public override string Language => "id";
 
         public override string Name => "Softkomik";
         public override string BaseUrl => "https://softkomik.com";

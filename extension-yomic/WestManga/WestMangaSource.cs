@@ -16,7 +16,7 @@ namespace Yomic.Extensions.WestManga
     {
         public override string Name => "WestManga";
         public override string BaseUrl => "https://westmanga.me";
-        public override string Language => "ID";
+        public override string Language => "id";
         public override bool IsHasMorePages => true;
 
         public override string Version => "1.0.0";

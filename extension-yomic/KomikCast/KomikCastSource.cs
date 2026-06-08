@@ -17,7 +17,7 @@ namespace Yomic.Extensions.KomikCast
         // Base API URL
         public override string BaseUrl => "https://be.komikcast.cc";
         private const string WebsiteUrl = "https://v2.komikcast.fit";
-        public override string Language => "ID";
+        public override string Language => "id";
         public override bool IsHasMorePages => true;
 
         public override string Version => "1.2.0";
