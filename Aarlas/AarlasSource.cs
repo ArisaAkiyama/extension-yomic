@@ -15,7 +15,7 @@ namespace Yomic.Extensions.Aarlas
         public long Id => 123456789004;
         public string Name => "Aarlas";
         public string BaseUrl => "https://www.arlas.online";
-        public string Language => "ID";
+        public string Language => "id";
         public bool IsHasMorePages => true;
 
         public string Version => "1.0.0";
