@@ -19,7 +19,7 @@ namespace Yomic.Extensions.Aarlas
         public bool IsHasMorePages => true;
 
         public string Version => "1.0.0";
-        public string IconUrl => "https://www.google.com/s2/favicons?domain=www.arlas.online&sz=128";
+        public string IconUrl => "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/icons/aarlas.png";
         public string Description => "Baca Manga Bahasa Indonesia di Aarlas (ZeistManga)";
         public string Author => "Yomic Desktop";
         public string IconBackground => "#000000";
@@ -121,7 +121,10 @@ namespace Yomic.Extensions.Aarlas
             var manga = new Manga
             {
                 Url = url,
-                Title = doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']")?.InnerText.Trim() ?? "Unknown"
+                Title = doc.DocumentNode.SelectSingleNode("//h1[contains(@class, 'entry-title')]")?.InnerText.Trim() 
+                    ?? doc.DocumentNode.SelectSingleNode("//h1[contains(@class, 'title')]")?.InnerText.Trim()
+                    ?? doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Trim() 
+                    ?? "Unknown"
             };
 
             var coverImg = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'grid')]//img");
