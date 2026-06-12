@@ -109,35 +109,93 @@ namespace Yomic.Extensions.CrotPedia
             return result.Items;
         }
 
+        private async Task<(HtmlDocument doc, string finalUrl)> GetMangaDocAsync(string mangaId)
+        {
+            string url = mangaId;
+            if (!url.StartsWith("http"))
+            {
+                url = $"{BaseUrl}/{mangaId.TrimStart('/')}";
+            }
+
+            if (!url.EndsWith("/"))
+            {
+                if (!url.Contains("?") && !url.Substring(url.LastIndexOf('/')).Contains("."))
+                {
+                    url += "/";
+                }
+            }
+
+            var candidates = new List<string>();
+            
+            var uri = new Uri(url);
+            var pathParts = uri.AbsolutePath.Trim('/').Split('/');
+            var slug = pathParts.Last();
+            
+            if (url.Contains("/baca/series/"))
+            {
+                candidates.Add(url);
+                candidates.Add($"{BaseUrl}/komik/{slug}/");
+                candidates.Add($"{BaseUrl}/manga/{slug}/");
+                candidates.Add($"{BaseUrl}/{slug}/");
+            }
+            else if (url.Contains("/komik/"))
+            {
+                candidates.Add(url);
+                candidates.Add($"{BaseUrl}/baca/series/{slug}/");
+                candidates.Add($"{BaseUrl}/manga/{slug}/");
+                candidates.Add($"{BaseUrl}/{slug}/");
+            }
+            else if (url.Contains("/manga/"))
+            {
+                candidates.Add(url);
+                candidates.Add($"{BaseUrl}/baca/series/{slug}/");
+                candidates.Add($"{BaseUrl}/komik/{slug}/");
+                candidates.Add($"{BaseUrl}/{slug}/");
+            }
+            else
+            {
+                candidates.Add($"{BaseUrl}/baca/series/{slug}/");
+                candidates.Add(url);
+                candidates.Add($"{BaseUrl}/komik/{slug}/");
+                candidates.Add($"{BaseUrl}/manga/{slug}/");
+            }
+
+            var uniqueCandidates = candidates.Distinct().ToList();
+
+            Exception? lastException = null;
+            foreach (var candidate in uniqueCandidates)
+            {
+                try
+                {
+                    var doc = await GetHtmlAsync(candidate);
+                    return (doc, candidate);
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    Console.WriteLine($"[CrotPedia] Fallback failed for {candidate}: {ex.Message}");
+                }
+            }
+
+            throw lastException ?? new Exception($"Failed to fetch manga doc for {mangaId}");
+        }
+
         public override async Task<Manga> GetMangaDetailsAsync(string mangaId)
         {
-            string path = mangaId;
-            if (!path.Contains("/") && !path.StartsWith("http"))
+            var (doc, finalUrl) = await GetMangaDocAsync(mangaId);
+            
+            string path = finalUrl;
+            if (finalUrl.StartsWith(BaseUrl))
             {
-                path = "komik/" + path; // Try komik/ first as it is more common now
-            }
-            string url = path;
-            if (!url.StartsWith("http"))
-                url = $"{BaseUrl}/{path.TrimStart('/')}";
-
-            HtmlDocument doc;
-            try
-            {
-                doc = await GetHtmlAsync(url);
-            }
-            catch (Exception ex) when (ex.Message.Contains("404"))
-            {
-                if (url.Contains("/komik/"))
-                {
-                    url = url.Replace("/komik/", "/manga/");
-                    doc = await GetHtmlAsync(url);
-                }
-                else throw;
+                path = finalUrl.Substring(BaseUrl.Length).TrimStart('/');
             }
 
             // Title
-            string title = doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']")?.InnerText.Trim()
+            string title = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'series-title')]//h2")?.InnerText.Trim()
+                         ?? doc.DocumentNode.SelectSingleNode("//div[contains(@class,'series-titlex')]//h2")?.InnerText.Trim()
+                         ?? doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']")?.InnerText.Trim()
                          ?? doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Trim()
+                         ?? doc.DocumentNode.SelectSingleNode("//h2")?.InnerText.Trim()
                          ?? "Unknown Title";
 
             // Cover
@@ -227,33 +285,11 @@ namespace Yomic.Extensions.CrotPedia
 
         public override async Task<List<Chapter>> GetChapterListAsync(string mangaId)
         {
-            string path = mangaId;
-            if (!path.Contains("/") && !path.StartsWith("http"))
-            {
-                path = "komik/" + path; // Try komik/ first
-            }
-            string url = path;
-            if (!url.StartsWith("http"))
-                url = $"{BaseUrl}/{path.TrimStart('/')}";
             var chapters = new List<Chapter>();
 
             try
             {
-                HtmlDocument doc;
-                try
-                {
-                    doc = await GetHtmlAsync(url);
-                }
-                catch (Exception ex) when (ex.Message.Contains("404"))
-                {
-                    if (url.Contains("/komik/"))
-                    {
-                        url = url.Replace("/komik/", "/manga/");
-                        doc = await GetHtmlAsync(url);
-                    }
-                    else throw;
-                }
-
+                var (doc, _) = await GetMangaDocAsync(mangaId);
                 var chapterNodes = doc.DocumentNode.SelectNodes("//ul[contains(@class,'series-chapterlist')]//div[contains(@class,'flexch-infoz')]//a");
 
                 if (chapterNodes == null) return chapters;
