@@ -574,8 +574,8 @@
     },
     "Yomic.Shared/1.0.0": {
       "type": "project",
-      "path": "../../../Yomic.Shared/Yomic.Shared.csproj",
-      "msbuildProject": "../../../Yomic.Shared/Yomic.Shared.csproj"
+      "path": "../../Yomic.Shared/Yomic.Shared.csproj",
+      "msbuildProject": "../../Yomic.Shared/Yomic.Shared.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -591,11 +591,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Project\\DesktopKomik\\Yomic\\Extensions\\Luvyaa\\Yomic.Extensions.Luvyaa.csproj",
+      "projectUniqueName": "d:\\Project\\DesktopKomik\\extension-yomic\\Luvyaa\\Yomic.Extensions.Luvyaa.csproj",
       "projectName": "Yomic.Extensions.Luvyaa",
-      "projectPath": "D:\\Project\\DesktopKomik\\Yomic\\Extensions\\Luvyaa\\Yomic.Extensions.Luvyaa.csproj",
+      "projectPath": "d:\\Project\\DesktopKomik\\extension-yomic\\Luvyaa\\Yomic.Extensions.Luvyaa.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "D:\\Project\\DesktopKomik\\Yomic\\Extensions\\Luvyaa\\obj\\",
+      "outputPath": "d:\\Project\\DesktopKomik\\extension-yomic\\Luvyaa\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -611,8 +611,8 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
-              "projectPath": "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj"
+            "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
+              "projectPath": "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj"
             }
           }
         }
@@ -659,7 +659,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

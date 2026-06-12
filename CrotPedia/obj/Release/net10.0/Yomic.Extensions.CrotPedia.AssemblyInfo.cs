@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Yomic.Extensions.CrotPedia")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b33593bd97333f1911d1f1d4a35477daa3c6f5f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+da9f551c529cd64bc51e0906cff122f2388235d5")]
 [assembly: System.Reflection.AssemblyProductAttribute("Yomic.Extensions.CrotPedia")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Yomic.Extensions.CrotPedia")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

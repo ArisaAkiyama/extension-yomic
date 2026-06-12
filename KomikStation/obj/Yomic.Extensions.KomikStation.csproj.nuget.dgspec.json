@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\Yomic.Extensions.KomikStation.csproj": {}
+    "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\Yomic.Extensions.KomikStation.csproj": {}
   },
   "projects": {
-    "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
+    "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\Yomic.Extensions.KomikStation.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj",
-        "projectName": "Yomic.Shared",
-        "projectPath": "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj",
+        "projectUniqueName": "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
+        "projectName": "Yomic.Extensions.KomikStation",
+        "projectPath": "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
         "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "d:\\Project\\DesktopKomik\\Yomic.Shared\\obj\\",
+        "outputPath": "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -26,7 +26,11 @@
           "net10.0": {
             "framework": "net10.0",
             "targetAlias": "net10.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
+                "projectPath": "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -49,14 +53,6 @@
             "HtmlAgilityPack": {
               "target": "Package",
               "version": "[1.12.4, )"
-            },
-            "Newtonsoft.Json": {
-              "target": "Package",
-              "version": "[13.0.4, )"
-            },
-            "PuppeteerSharp": {
-              "target": "Package",
-              "version": "[20.2.5, )"
             }
           },
           "imports": [
@@ -75,7 +71,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -353,14 +349,14 @@
         }
       }
     },
-    "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\Yomic.Extensions.KomikStation.csproj": {
+    "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
-        "projectName": "Yomic.Extensions.KomikStation",
-        "projectPath": "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
+        "projectUniqueName": "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj",
+        "projectName": "Yomic.Shared",
+        "projectPath": "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj",
         "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\obj\\",
+        "outputPath": "D:\\Project\\DesktopKomik\\Yomic.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -375,11 +371,7 @@
           "net10.0": {
             "framework": "net10.0",
             "targetAlias": "net10.0",
-            "projectReferences": {
-              "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
-                "projectPath": "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj"
-              }
-            }
+            "projectReferences": {}
           }
         },
         "warningProperties": {
@@ -402,6 +394,14 @@
             "HtmlAgilityPack": {
               "target": "Package",
               "version": "[1.12.4, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.4, )"
+            },
+            "PuppeteerSharp": {
+              "target": "Package",
+              "version": "[20.2.5, )"
             }
           },
           "imports": [
@@ -420,7 +420,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

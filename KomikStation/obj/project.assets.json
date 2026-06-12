@@ -511,8 +511,8 @@
     },
     "Yomic.Shared/1.0.0": {
       "type": "project",
-      "path": "../../../Yomic.Shared/Yomic.Shared.csproj",
-      "msbuildProject": "../../../Yomic.Shared/Yomic.Shared.csproj"
+      "path": "../../Yomic.Shared/Yomic.Shared.csproj",
+      "msbuildProject": "../../Yomic.Shared/Yomic.Shared.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -527,11 +527,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
+      "projectUniqueName": "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
       "projectName": "Yomic.Extensions.KomikStation",
-      "projectPath": "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
+      "projectPath": "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\Yomic.Extensions.KomikStation.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "d:\\Project\\DesktopKomik\\Yomic\\Extensions\\KomikStation\\obj\\",
+      "outputPath": "D:\\Project\\DesktopKomik\\extension-yomic\\KomikStation\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -547,8 +547,8 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
-              "projectPath": "d:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj"
+            "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj": {
+              "projectPath": "D:\\Project\\DesktopKomik\\Yomic.Shared\\Yomic.Shared.csproj"
             }
           }
         }
@@ -591,7 +591,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

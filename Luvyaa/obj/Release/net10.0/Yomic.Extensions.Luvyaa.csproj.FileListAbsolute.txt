@@ -1,0 +1,16 @@
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\bin\Release\net10.0\Yomic.Extensions.Luvyaa.deps.json
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\bin\Release\net10.0\Yomic.Extensions.Luvyaa.dll
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\bin\Release\net10.0\Yomic.Extensions.Luvyaa.pdb
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\bin\Release\net10.0\Yomic.Shared.dll
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\bin\Release\net10.0\Yomic.Shared.pdb
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.csproj.AssemblyReference.cache
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.AssemblyInfoInputs.cache
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.AssemblyInfo.cs
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.csproj.CoreCompileInputs.cache
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.sourcelink.json
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Ex.4414DC5D.Up2Date
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.dll
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\refint\Yomic.Extensions.Luvyaa.dll
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\Yomic.Extensions.Luvyaa.pdb
+D:\Project\DesktopKomik\extension-yomic\Luvyaa\obj\Release\net10.0\ref\Yomic.Extensions.Luvyaa.dll

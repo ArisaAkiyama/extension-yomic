@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "y+3QV40F1EI=",
+  "dgSpecHash": "hUIL6cYKqH8=",
   "success": true,
-  "projectFilePath": "D:\\Project\\DesktopKomik\\Yomic\\Extensions\\Luvyaa\\Yomic.Extensions.Luvyaa.csproj",
+  "projectFilePath": "d:\\Project\\DesktopKomik\\extension-yomic\\Luvyaa\\Yomic.Extensions.Luvyaa.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ASUS\\.nuget\\packages\\htmlagilitypack\\1.12.4\\htmlagilitypack.1.12.4.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\10.0.0\\microsoft.extensions.dependencyinjection.10.0.0.nupkg.sha512",

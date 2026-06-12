@@ -14,3 +14,12 @@ D:\Project\DesktopKomik\Yomic\Extensions\KomikStation\obj\Debug\net10.0\Yomic.Ex
 D:\Project\DesktopKomik\Yomic\Extensions\KomikStation\obj\Debug\net10.0\refint\Yomic.Extensions.KomikStation.dll
 D:\Project\DesktopKomik\Yomic\Extensions\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.pdb
 D:\Project\DesktopKomik\Yomic\Extensions\KomikStation\obj\Debug\net10.0\ref\Yomic.Extensions.KomikStation.dll
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.csproj.AssemblyReference.cache
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.AssemblyInfoInputs.cache
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.AssemblyInfo.cs
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.csproj.CoreCompileInputs.cache
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.sourcelink.json
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.dll
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\refint\Yomic.Extensions.KomikStation.dll
+D:\Project\DesktopKomik\extension-yomic\KomikStation\obj\Debug\net10.0\Yomic.Extensions.KomikStation.pdb

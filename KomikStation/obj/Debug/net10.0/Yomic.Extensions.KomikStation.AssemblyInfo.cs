@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Yomic.Extensions.KomikStation")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+505b8a5c0072bcefe22314c6337826560f9a6013")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cabb7663e7177c55c7f8ba7567f1c6fb5f52c169")]
 [assembly: System.Reflection.AssemblyProductAttribute("Yomic.Extensions.KomikStation")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Yomic.Extensions.KomikStation")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -114,13 +114,26 @@ namespace Yomic.Extensions.CrotPedia
             string path = mangaId;
             if (!path.Contains("/") && !path.StartsWith("http"))
             {
-                path = "manga/" + path;
+                path = "komik/" + path; // Try komik/ first as it is more common now
             }
             string url = path;
             if (!url.StartsWith("http"))
                 url = $"{BaseUrl}/{path.TrimStart('/')}";
 
-            var doc = await GetHtmlAsync(url);
+            HtmlDocument doc;
+            try
+            {
+                doc = await GetHtmlAsync(url);
+            }
+            catch (Exception ex) when (ex.Message.Contains("404"))
+            {
+                if (url.Contains("/komik/"))
+                {
+                    url = url.Replace("/komik/", "/manga/");
+                    doc = await GetHtmlAsync(url);
+                }
+                else throw;
+            }
 
             // Title
             string title = doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']")?.InnerText.Trim()
@@ -217,7 +230,7 @@ namespace Yomic.Extensions.CrotPedia
             string path = mangaId;
             if (!path.Contains("/") && !path.StartsWith("http"))
             {
-                path = "manga/" + path;
+                path = "komik/" + path; // Try komik/ first
             }
             string url = path;
             if (!url.StartsWith("http"))
@@ -226,7 +239,20 @@ namespace Yomic.Extensions.CrotPedia
 
             try
             {
-                var doc = await GetHtmlAsync(url);
+                HtmlDocument doc;
+                try
+                {
+                    doc = await GetHtmlAsync(url);
+                }
+                catch (Exception ex) when (ex.Message.Contains("404"))
+                {
+                    if (url.Contains("/komik/"))
+                    {
+                        url = url.Replace("/komik/", "/manga/");
+                        doc = await GetHtmlAsync(url);
+                    }
+                    else throw;
+                }
 
                 var chapterNodes = doc.DocumentNode.SelectNodes("//ul[contains(@class,'series-chapterlist')]//div[contains(@class,'flexch-infoz')]//a");
 
