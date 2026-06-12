@@ -111,8 +111,9 @@ namespace Yomic.Extensions.CrotPedia
 
         public override async Task<Manga> GetMangaDetailsAsync(string mangaId)
         {
-            string slug = ExtractSlug(mangaId);
-            string url = $"{BaseUrl}/{slug}/";
+            string url = mangaId;
+            if (!url.StartsWith("http"))
+                url = $"{BaseUrl}/{mangaId.TrimStart('/')}";
 
             var doc = await GetHtmlAsync(url);
 
@@ -194,7 +195,7 @@ namespace Yomic.Extensions.CrotPedia
 
             return new Manga
             {
-                Url = slug,
+                Url = mangaId,
                 Title = System.Net.WebUtility.HtmlDecode(title).Trim(),
                 ThumbnailUrl = GetImageWithReferer(cover),
                 Description = synopsis,
@@ -208,8 +209,9 @@ namespace Yomic.Extensions.CrotPedia
 
         public override async Task<List<Chapter>> GetChapterListAsync(string mangaId)
         {
-            string slug = ExtractSlug(mangaId);
-            string url = $"{BaseUrl}/{slug}/";
+            string url = mangaId;
+            if (!url.StartsWith("http"))
+                url = $"{BaseUrl}/{mangaId.TrimStart('/')}";
             var chapters = new List<Chapter>();
 
             try
@@ -325,6 +327,17 @@ namespace Yomic.Extensions.CrotPedia
                         string href = linkNode.GetAttributeValue("href", "");
                         if (string.IsNullOrEmpty(href)) continue;
 
+                        string relativeUrl = href;
+                        if (href.StartsWith("http"))
+                        {
+                            try
+                            {
+                                var uri = new Uri(href);
+                                relativeUrl = uri.PathAndQuery;
+                            }
+                            catch {}
+                        }
+
                         string slug = ExtractSlug(href);
                         if (seenSlugs.Contains(slug)) continue;
                         seenSlugs.Add(slug);
@@ -339,7 +352,7 @@ namespace Yomic.Extensions.CrotPedia
                         list.Add(new Manga
                         {
                             Title = System.Net.WebUtility.HtmlDecode(title).Trim(),
-                            Url = slug,
+                            Url = relativeUrl,
                             ThumbnailUrl = GetImageWithReferer(cover),
                             Source = this.Id,
                             Status = Manga.UNKNOWN
