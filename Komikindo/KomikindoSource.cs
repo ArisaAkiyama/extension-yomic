@@ -67,6 +67,10 @@ namespace Yomic.Extensions.Komikindo
         private string GetImageWithReferer(string url)
         {
             if (string.IsNullOrEmpty(url)) return "";
+            if (url.Contains("linksaya.com"))
+            {
+                return $"{url}|Referer=https://linksaya.com/";
+            }
             return $"{url}|Referer={BaseUrl}/";
         }
 
