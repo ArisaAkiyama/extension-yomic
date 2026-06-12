@@ -111,9 +111,14 @@ namespace Yomic.Extensions.CrotPedia
 
         public override async Task<Manga> GetMangaDetailsAsync(string mangaId)
         {
-            string url = mangaId;
+            string path = mangaId;
+            if (!path.Contains("/") && !path.StartsWith("http"))
+            {
+                path = "manga/" + path;
+            }
+            string url = path;
             if (!url.StartsWith("http"))
-                url = $"{BaseUrl}/{mangaId.TrimStart('/')}";
+                url = $"{BaseUrl}/{path.TrimStart('/')}";
 
             var doc = await GetHtmlAsync(url);
 
@@ -195,7 +200,7 @@ namespace Yomic.Extensions.CrotPedia
 
             return new Manga
             {
-                Url = mangaId,
+                Url = path,
                 Title = System.Net.WebUtility.HtmlDecode(title).Trim(),
                 ThumbnailUrl = GetImageWithReferer(cover),
                 Description = synopsis,
@@ -209,9 +214,14 @@ namespace Yomic.Extensions.CrotPedia
 
         public override async Task<List<Chapter>> GetChapterListAsync(string mangaId)
         {
-            string url = mangaId;
+            string path = mangaId;
+            if (!path.Contains("/") && !path.StartsWith("http"))
+            {
+                path = "manga/" + path;
+            }
+            string url = path;
             if (!url.StartsWith("http"))
-                url = $"{BaseUrl}/{mangaId.TrimStart('/')}";
+                url = $"{BaseUrl}/{path.TrimStart('/')}";
             var chapters = new List<Chapter>();
 
             try
