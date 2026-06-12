@@ -87,13 +87,25 @@ namespace Yomic.Extensions.Luvyaa
 
         public async Task<(List<Manga> Items, int TotalPages)> GetLatestMangaAsync(int page)
         {
-            string url = $"{BaseUrl}{MangaUrlDirectory}/?page={page}&order=update";
+            return await GetLatestMangaAsync(page, Manga.UNKNOWN);
+        }
+
+        public async Task<(List<Manga> Items, int TotalPages)> GetLatestMangaAsync(int page, int status)
+        {
+            string statusParam = status == Manga.ONGOING ? "ongoing" : status == Manga.COMPLETED ? "completed" : "";
+            string url = $"{BaseUrl}{MangaUrlDirectory}/?page={page}&status={statusParam}&order=update";
             return await ScrapeMangaList(url);
         }
 
         public async Task<(List<Manga> Items, int TotalPages)> GetMangaListAsync(int page)
         {
-            string url = $"{BaseUrl}{MangaUrlDirectory}/?page={page}&order=popular";
+            return await GetMangaListAsync(page, Manga.UNKNOWN);
+        }
+
+        public async Task<(List<Manga> Items, int TotalPages)> GetMangaListAsync(int page, int status)
+        {
+            string statusParam = status == Manga.ONGOING ? "ongoing" : status == Manga.COMPLETED ? "completed" : "";
+            string url = $"{BaseUrl}{MangaUrlDirectory}/?page={page}&status={statusParam}&order=popular";
             return await ScrapeMangaList(url);
         }
 
