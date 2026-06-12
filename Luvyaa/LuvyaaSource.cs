@@ -152,52 +152,97 @@ namespace Yomic.Extensions.Luvyaa
             if (synopsisNode != null)
                 synopsis = System.Net.WebUtility.HtmlDecode(synopsisNode.InnerText).Trim();
 
-            // Status: from div.tsinfo > div.imptdt
+            // Status
             int status = Manga.UNKNOWN;
-            var statusItems = doc.DocumentNode.SelectNodes("//div[contains(@class,'tsinfo')]//div[contains(@class,'imptdt')]");
-            if (statusItems != null)
+            
+            // Strategy 1: New Modern Theme (.kh-status)
+            var newStatusNode = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'kh-status')]//span[contains(@class,'status-text')]");
+            if (newStatusNode != null)
             {
-                foreach (var item in statusItems)
+                string st = newStatusNode.InnerText.Trim().ToLower();
+                if (st.Contains("ongoing") || st.Contains("berjalan")) status = Manga.ONGOING;
+                else if (st.Contains("completed") || st.Contains("tamat")) status = Manga.COMPLETED;
+                else if (st.Contains("hiatus")) status = Manga.ON_HIATUS;
+                else if (st.Contains("dropped") || st.Contains("cancelled")) status = Manga.CANCELLED;
+            }
+            
+            // Strategy 2: Classic MangaThemesia (.tsinfo > .imptdt)
+            if (status == Manga.UNKNOWN)
+            {
+                var statusItems = doc.DocumentNode.SelectNodes("//div[contains(@class,'tsinfo')]//div[contains(@class,'imptdt')]");
+                if (statusItems != null)
                 {
-                    string text = item.InnerText.Trim().ToLower();
-                    if (text.Contains("status"))
+                    foreach (var item in statusItems)
                     {
-                        var val = item.SelectSingleNode(".//i") ?? item.SelectSingleNode(".//a");
-                        if (val != null)
+                        string text = item.InnerText.Trim().ToLower();
+                        if (text.Contains("status"))
                         {
-                            string st = val.InnerText.Trim().ToLower();
-                            status = st switch
+                            var val = item.SelectSingleNode(".//i") ?? item.SelectSingleNode(".//a");
+                            if (val != null)
                             {
-                                "ongoing" => Manga.ONGOING,
-                                "completed" => Manga.COMPLETED,
-                                "hiatus" => Manga.ON_HIATUS,
-                                "cancelled" or "dropped" => Manga.CANCELLED,
-                                _ => Manga.UNKNOWN
-                            };
+                                string st = val.InnerText.Trim().ToLower();
+                                status = st switch
+                                {
+                                    "ongoing" => Manga.ONGOING,
+                                    "completed" => Manga.COMPLETED,
+                                    "hiatus" => Manga.ON_HIATUS,
+                                    "cancelled" or "dropped" => Manga.CANCELLED,
+                                    _ => Manga.UNKNOWN
+                                };
+                            }
                         }
                     }
                 }
             }
 
-            // Author: from div.fmed with <b>Penulis</b> or <b>Author</b> label
+            // Author
             string author = "Unknown";
-            var fmedItems = doc.DocumentNode.SelectNodes("//div[contains(@class,'fmed')]");
-            if (fmedItems != null)
+            
+            // Strategy 1: New Modern Theme (.meta-item)
+            var metaItems = doc.DocumentNode.SelectNodes("//div[contains(@class,'meta-item')]");
+            if (metaItems != null)
             {
-                foreach (var fmed in fmedItems)
+                foreach (var meta in metaItems)
                 {
-                    var labelNode = fmed.SelectSingleNode(".//b");
-                    if (labelNode == null) continue;
-                    string label = labelNode.InnerText.Trim().ToLower();
-                    if (label.Contains("penulis") || label.Contains("author") || label.Contains("pengarang"))
+                    var labelNode = meta.SelectSingleNode(".//span[contains(@class,'meta-label')]");
+                    if (labelNode != null)
                     {
-                        var valNode = fmed.SelectSingleNode(".//span");
-                        if (valNode != null)
+                        string label = labelNode.InnerText.Trim().ToLower();
+                        if (label.Contains("author") || label.Contains("penulis") || label.Contains("pengarang"))
                         {
-                            string val = System.Net.WebUtility.HtmlDecode(valNode.InnerText).Trim();
-                            if (!string.IsNullOrEmpty(val)) author = val;
+                            var pillNode = meta.SelectSingleNode(".//span[contains(@class,'meta-pill')]");
+                            if (pillNode != null)
+                            {
+                                string val = System.Net.WebUtility.HtmlDecode(pillNode.InnerText).Trim();
+                                if (!string.IsNullOrEmpty(val)) author = val;
+                            }
+                            break;
                         }
-                        break;
+                    }
+                }
+            }
+            
+            // Strategy 2: Classic MangaThemesia (.fmed)
+            if (author == "Unknown")
+            {
+                var fmedItems = doc.DocumentNode.SelectNodes("//div[contains(@class,'fmed')]");
+                if (fmedItems != null)
+                {
+                    foreach (var fmed in fmedItems)
+                    {
+                        var labelNode = fmed.SelectSingleNode(".//b");
+                        if (labelNode == null) continue;
+                        string label = labelNode.InnerText.Trim().ToLower();
+                        if (label.Contains("penulis") || label.Contains("author") || label.Contains("pengarang"))
+                        {
+                            var valNode = fmed.SelectSingleNode(".//span");
+                            if (valNode != null)
+                            {
+                                string val = System.Net.WebUtility.HtmlDecode(valNode.InnerText).Trim();
+                                if (!string.IsNullOrEmpty(val)) author = val;
+                            }
+                            break;
+                        }
                     }
                 }
             }
