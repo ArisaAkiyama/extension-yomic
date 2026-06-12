@@ -124,15 +124,22 @@ namespace Yomic.Extensions.KomikStation
             // Status: from div.tsinfo > div.imptdt
             // HTML: <div class="tsinfo"><div class="imptdt"> Status <i>Ongoing</i></div></div>
             int status = Manga.UNKNOWN;
-            var statusItems = doc.DocumentNode.SelectNodes("//div[contains(@class,'tsinfo')]//div[contains(@class,'imptdt')]");
-            if (statusItems != null)
+            var possibleContainers = new List<HtmlNodeCollection>();
+            var tsinfo = doc.DocumentNode.SelectNodes("//div[contains(@class,'tsinfo')]//div[contains(@class,'imptdt')]");
+            if (tsinfo != null) possibleContainers.Add(tsinfo);
+            var infotable = doc.DocumentNode.SelectNodes("//div[contains(@class,'infotable')]//tr");
+            if (infotable != null) possibleContainers.Add(infotable);
+            var fmedsStatus = doc.DocumentNode.SelectNodes("//div[contains(@class,'fmed')]");
+            if (fmedsStatus != null) possibleContainers.Add(fmedsStatus);
+
+            foreach (var container in possibleContainers)
             {
-                foreach (var item in statusItems)
+                foreach (var item in container)
                 {
                     string text = item.InnerText.Trim().ToLower();
                     if (text.Contains("status"))
                     {
-                        var val = item.SelectSingleNode(".//i") ?? item.SelectSingleNode(".//a");
+                        var val = item.SelectSingleNode(".//i") ?? item.SelectSingleNode(".//a") ?? item.SelectSingleNode(".//span") ?? item.SelectSingleNode(".//td[last()]");
                         string st = val != null ? val.InnerText.Trim().ToLower() : text.Replace("status", "").Trim();
 
                         status = st switch
@@ -143,8 +150,11 @@ namespace Yomic.Extensions.KomikStation
                             var s when s.Contains("cancelled") || s.Contains("dropped") || s.Contains("batal") => Manga.CANCELLED,
                             _ => Manga.UNKNOWN
                         };
+                        
+                        if (status != Manga.UNKNOWN) break;
                     }
                 }
+                if (status != Manga.UNKNOWN) break;
             }
 
             // Author: from div.fmed with <b>Penulis</b> or <b>Ilustrator</b> label
