@@ -396,13 +396,29 @@ namespace Yomic.Extensions.Luvyaa
                                    ?? card.SelectSingleNode(".//img");
                         string cover = ExtractCover(imgNode);
 
+                        int status = Manga.UNKNOWN;
+                        var statusNode = card.SelectSingleNode(".//span[contains(@class,'status')]");
+                        if (statusNode != null)
+                        {
+                            string st = statusNode.InnerText.Trim().ToLower();
+                            if (st.Contains("completed") || st.Contains("tamat")) status = Manga.COMPLETED;
+                            else if (st.Contains("ongoing") || st.Contains("berjalan")) status = Manga.ONGOING;
+                            else if (st.Contains("dropped") || st.Contains("cancelled")) status = Manga.CANCELLED;
+                            else if (st.Contains("hiatus")) status = Manga.ON_HIATUS;
+                        }
+                        else
+                        {
+                            // In MangaThemesia, missing status badge typically means it's Ongoing
+                            status = Manga.ONGOING;
+                        }
+
                         list.Add(new Manga
                         {
                             Title = System.Net.WebUtility.HtmlDecode(title).Trim(),
                             Url = slug,
                             ThumbnailUrl = GetImageWithReferer(cover),
                             Source = this.Id,
-                            Status = Manga.UNKNOWN
+                            Status = status
                         });
                     }
                 }

@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Yomic.Shared\Yomic.Shared.csproj" />
+    <ProjectReference Include="..\..\Yomic.Shared\Yomic.Shared.csproj" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
