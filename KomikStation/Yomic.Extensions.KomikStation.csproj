@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Yomic.Shared\Yomic.Shared.csproj" />
+    <ProjectReference Include="..\..\Yomic.Shared\Yomic.Shared.csproj" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy /Y /S &quot;$(TargetDir)$(TargetName).dll&quot; &quot;$(ProjectDir)..\..\bin\Debug\net10.0\Plugins\&quot;" />
