@@ -133,18 +133,16 @@ namespace Yomic.Extensions.KomikStation
                     if (text.Contains("status"))
                     {
                         var val = item.SelectSingleNode(".//i") ?? item.SelectSingleNode(".//a");
-                        if (val != null)
+                        string st = val != null ? val.InnerText.Trim().ToLower() : text.Replace("status", "").Trim();
+
+                        status = st switch
                         {
-                            string st = val.InnerText.Trim().ToLower();
-                            status = st switch
-                            {
-                                "ongoing" => Manga.ONGOING,
-                                "completed" => Manga.COMPLETED,
-                                "hiatus" => Manga.ON_HIATUS,
-                                "cancelled" or "dropped" => Manga.CANCELLED,
-                                _ => Manga.UNKNOWN
-                            };
-                        }
+                            var s when s.Contains("ongoing") || s.Contains("berjalan") => Manga.ONGOING,
+                            var s when s.Contains("completed") || s.Contains("tamat") || s.Contains("selesai") => Manga.COMPLETED,
+                            var s when s.Contains("hiatus") => Manga.ON_HIATUS,
+                            var s when s.Contains("cancelled") || s.Contains("dropped") || s.Contains("batal") => Manga.CANCELLED,
+                            _ => Manga.UNKNOWN
+                        };
                     }
                 }
             }
