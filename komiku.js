@@ -80,7 +80,32 @@ var source = {
         };
     },
 
+    getMangaList: function(page, status) {
+        if (status === 1 || status === 2 || status === 4) {
+            return this.getStatusMangaList(page, status);
+        }
+        return this.getPopularManga(page);
+    },
 
+    getStatusMangaList: function(page, status) {
+        let statusParam = status === 1 ? "ongoing" : "end";
+        let url = `${this.baseUrl}/daftar-komik/?status=${statusParam}`;
+        if (page > 1) {
+            url += `&halaman=${page}`;
+        }
+
+        let response = fetch(url);
+        if (response.status !== 200) return { items: [], totalPages: page };
+
+        let doc = Html.parse(response.body, url);
+        let items = this.parseDirectoryMangaList(doc);
+        let totalPages = this.parseTotalPages(doc, page);
+
+        return {
+            items: items,
+            totalPages: totalPages
+        };
+    },
 
     getMangaDetails: function(url) {
         let fullUrl = this.baseUrl + url;
