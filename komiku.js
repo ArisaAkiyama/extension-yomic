@@ -27,7 +27,7 @@ var source = {
         return this.getApiMangaPage(page, queryString, 50);
     },
 
-    getApiMangaPage: function(page, queryString, estimatedPages) {
+    getApiMangaPage: function(page, queryString, estimatedPages, totalMode) {
         const appPageSize = 14;
         const apiPageSize = 10;
         let startIndex = (Math.max(1, page) - 1) * appPageSize;
@@ -35,10 +35,19 @@ var source = {
         let offset = startIndex % apiPageSize;
         let collected = [];
         let sourceTotalPages = estimatedPages || 500;
+        let sourceTotalItems = sourceTotalPages * apiPageSize;
+
+        if (totalMode === "probe-known-end") {
+            sourceTotalItems = this.resolveKnownStatusTotalItems(queryString, sourceTotalPages);
+            sourceTotalPages = Math.max(sourceTotalPages, Math.ceil(sourceTotalItems / apiPageSize));
+        }
 
         for (let sourcePage = firstApiPage; collected.length < appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
             let pageResult = this.getRawApiMangaPage(sourcePage, queryString, sourceTotalPages);
-            sourceTotalPages = pageResult.totalPages;
+            if (totalMode !== "probe-known-end") {
+                sourceTotalPages = pageResult.totalPages;
+                sourceTotalItems = sourceTotalPages * apiPageSize;
+            }
 
             let items = pageResult.items;
             if (sourcePage === firstApiPage && offset > 0) {
@@ -53,14 +62,14 @@ var source = {
 
         return {
             items: collected.slice(0, appPageSize),
-            totalPages: Math.max(page, Math.ceil(sourceTotalPages * apiPageSize / appPageSize))
+            totalPages: Math.max(1, Math.ceil(sourceTotalItems / appPageSize))
         };
     },
 
     getRawApiMangaPage: function(page, queryString, estimatedPages) {
         let url = `${this.apiUrl}/manga`;
         if (page > 1) {
-            url += `/page/${page}`;
+            url += `/page/${page}/`;
         }
         url += queryString || "";
         
@@ -80,6 +89,34 @@ var source = {
         };
     },
 
+    resolveKnownStatusTotalItems: function(queryString, knownLastPage) {
+        const apiPageSize = 10;
+        let lastPage = Math.max(1, knownLastPage || 1);
+        let lastResult = this.getRawApiMangaPage(lastPage, queryString, lastPage);
+        if (lastResult.items.length === 0) {
+            return lastPage * apiPageSize;
+        }
+
+        // Keep the count live without a slow binary search. Most days this only checks
+        // page 58 and 59 for Completed, but it can grow if Komiku adds new completed pages.
+        let safety = 0;
+        while (lastResult.items.length > 0 && lastResult.totalPages > lastPage && safety < 20) {
+            lastPage++;
+            lastResult = this.getRawApiMangaPage(lastPage, queryString, lastPage);
+            safety++;
+            if (lastResult.items.length === 0) {
+                lastPage--;
+                break;
+            }
+        }
+
+        if (lastResult.items.length === 0) {
+            lastResult = this.getRawApiMangaPage(lastPage, queryString, lastPage);
+        }
+
+        return ((lastPage - 1) * apiPageSize) + lastResult.items.length;
+    },
+
     getMangaList: function(page, status) {
         if (status === 1 || status === 2 || status === 4) {
             return this.getStatusMangaList(page, status);
@@ -90,8 +127,10 @@ var source = {
     getStatusMangaList: function(page, status) {
         let statusParam = status === 1 ? "ongoing" : "end";
         let queryString = `?statusmanga=${statusParam}&orderby=meta_value_num`;
+        let knownApiPages = status === 2 || status === 4 ? 58 : 646;
+        let totalMode = "probe-known-end";
         
-        let result = this.getApiMangaPage(page, queryString, 500);
+        let result = this.getApiMangaPage(page, queryString, knownApiPages, totalMode);
         
         if (result && result.items) {
             for (let i = 0; i < result.items.length; i++) {
