@@ -607,6 +607,10 @@ var source = {
             }
         }
 
+        if (collected.length === 0) {
+            return { items: [], totalPages: page };
+        }
+
         return {
             items: collected.slice(0, appPageSize),
             totalPages: Math.max(page, Math.ceil(sourceTotalPages * apiPageSize / appPageSize))
@@ -620,8 +624,9 @@ var source = {
         
         log("WestManga fetching: " + url);
         var response = fetch(url, { headers: headers });
-        
+        log("WestManga response status: " + response.status);
         if (response.status !== 200) {
+            log("WestManga response body: " + response.body);
             return { items: [], totalPages: page };
         }
         
