@@ -539,8 +539,6 @@ var source = {
     iconForeground: "#FFFFFF",
     isNsfw: false,
     isHasMorePages: true,
-    requiresProxy: true,
-
 
     getSignatureHeaders: function(path) {
         var timestamp = Math.floor(Date.now() / 1000).toString();
@@ -573,14 +571,23 @@ var source = {
     },
 
     getMangaList: function(page, status) {
-        var params = "";
-        if (status === 1) {
-            params += "&status=Ongoing";
-        } else if (status === 2 || status === 4) {
-            params += "&status=Completed";
+        if (status === 1 || status === 2 || status === 4 || status === 6) {
+            return this.getStatusMangaList(page, status);
         }
-        return this.getApiMangaPage(page, params);
+        return this.getPopularManga(page);
     },
+
+    getStatusMangaList: function(page, status) {
+        var statusParam = "Ongoing";
+        if (status === 2 || status === 4) {
+            statusParam = "Completed";
+        } else if (status === 6) {
+            statusParam = "Hiatus";
+        }
+        // Append orderBy=Update to utilize DB indexes and prevent 15s timeouts on the server
+        return this.getApiMangaPage(page, "&status=" + statusParam + "&orderBy=Update");
+    },
+
 
     getApiMangaPage: function(page, params) {
         var path = "/api/contents";
