@@ -22,7 +22,17 @@ var source = {
         if (response.status !== 200) return [];
         
         let doc = Html.parse(response.body, url);
-        return this.parseMangaList(doc);
+        let items = this.parseMangaList(doc);
+        
+        // Komiku uses infinite scroll, so exact total pages is not provided.
+        // We estimate 500 pages (approx 15,000 manga).
+        let hasNext = doc.querySelector("[hx-get]") != null;
+        let total = hasNext ? Math.max(page + 1, 500) : page;
+        
+        return {
+            items: items,
+            totalPages: total
+        };
     },
 
     getLatestUpdates: function(page) {
@@ -36,7 +46,15 @@ var source = {
         if (response.status !== 200) return [];
         
         let doc = Html.parse(response.body, url);
-        return this.parseMangaList(doc);
+        let items = this.parseMangaList(doc);
+        
+        let hasNext = doc.querySelector("[hx-get]") != null;
+        let total = hasNext ? Math.max(page + 1, 500) : page;
+        
+        return {
+            items: items,
+            totalPages: total
+        };
     },
 
     getSearchManga: function(query, page) {
@@ -52,7 +70,15 @@ var source = {
         if (response.status !== 200) return [];
         
         let doc = Html.parse(response.body, url);
-        return this.parseMangaList(doc);
+        let items = this.parseMangaList(doc);
+        
+        let hasNext = doc.querySelector("[hx-get]") != null;
+        let total = hasNext ? Math.max(page + 1, 50) : page; // Search results have fewer pages
+        
+        return {
+            items: items,
+            totalPages: total
+        };
     },
 
     getMangaDetails: function(url) {
