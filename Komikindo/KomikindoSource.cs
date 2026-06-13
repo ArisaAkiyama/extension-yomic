@@ -178,7 +178,7 @@ namespace Yomic.Extensions.Komikindo
             {
                 string st = newStatusNode.InnerText.Trim().ToLower();
                 if (st.Contains("ongoing") || st.Contains("berjalan")) status = Manga.ONGOING;
-                else if (st.Contains("completed") || st.Contains("tamat")) status = Manga.COMPLETED;
+                else if (st.Contains("completed") || st.Contains("tamat") || st.Contains("selesai")) status = Manga.COMPLETED;
                 else if (st.Contains("hiatus")) status = Manga.ON_HIATUS;
                 else if (st.Contains("dropped") || st.Contains("cancelled")) status = Manga.CANCELLED;
             }
@@ -200,8 +200,8 @@ namespace Yomic.Extensions.Komikindo
                                 string st = val.InnerText.Trim().ToLower();
                                 status = st switch
                                 {
-                                    "ongoing" => Manga.ONGOING,
-                                    "completed" => Manga.COMPLETED,
+                                    "ongoing" or "berjalan" => Manga.ONGOING,
+                                    "completed" or "tamat" or "selesai" => Manga.COMPLETED,
                                     "hiatus" => Manga.ON_HIATUS,
                                     "cancelled" or "dropped" => Manga.CANCELLED,
                                     _ => Manga.UNKNOWN
@@ -475,7 +475,7 @@ namespace Yomic.Extensions.Komikindo
                         if (statusNode != null)
                         {
                             string st = statusNode.InnerText.Trim().ToLower();
-                            if (st.Contains("completed") || st.Contains("tamat")) status = Manga.COMPLETED;
+                            if (st.Contains("completed") || st.Contains("tamat") || st.Contains("selesai")) status = Manga.COMPLETED;
                             else if (st.Contains("ongoing") || st.Contains("berjalan")) status = Manga.ONGOING;
                             else if (st.Contains("dropped") || st.Contains("cancelled")) status = Manga.CANCELLED;
                             else if (st.Contains("hiatus")) status = Manga.ON_HIATUS;
