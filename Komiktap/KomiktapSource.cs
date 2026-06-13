@@ -130,7 +130,7 @@ namespace Yomic.Extensions.Komiktap
         public override async Task<Manga> GetMangaDetailsAsync(string mangaId)
         {
             string slug = ExtractSlug(mangaId);
-            string url = $"{BaseUrl}/{slug}/";
+            string url = slug.StartsWith("manga/") ? $"{BaseUrl}/{slug}/" : $"{BaseUrl}/manga/{slug}/";
 
             var doc = await GetHtmlAsync(url);
 
@@ -320,7 +320,7 @@ namespace Yomic.Extensions.Komiktap
         public override async Task<List<Chapter>> GetChapterListAsync(string mangaId)
         {
             string slug = ExtractSlug(mangaId);
-            string url = $"{BaseUrl}/{slug}/";
+            string url = slug.StartsWith("manga/") ? $"{BaseUrl}/{slug}/" : $"{BaseUrl}/manga/{slug}/";
             var chapters = new List<Chapter>();
 
             try
@@ -537,7 +537,7 @@ namespace Yomic.Extensions.Komiktap
                         string href = linkNode.GetAttributeValue("href", "");
                         if (string.IsNullOrEmpty(href)) continue;
 
-                        string slug = href.TrimEnd('/').Split('/').Last();
+                        string slug = ExtractSlug(href);
                         if (seenSlugs.Contains(slug)) continue;
                         seenSlugs.Add(slug);
 
@@ -614,13 +614,27 @@ namespace Yomic.Extensions.Komiktap
         private static string ExtractSlug(string input)
         {
             if (string.IsNullOrEmpty(input)) return input;
+            string path = input;
             if (input.StartsWith("http"))
             {
                 var uri = new Uri(input);
-                var segments = uri.AbsolutePath.Trim('/').Split('/');
-                return segments.Last();
+                path = uri.AbsolutePath;
             }
-            return input.Trim('/');
+            path = path.Trim('/');
+            
+            if (path.StartsWith("manga/"))
+            {
+                return path;
+            }
+            
+            var segments = path.Split('/');
+            int mangaIdx = Array.IndexOf(segments, "manga");
+            if (mangaIdx >= 0 && mangaIdx < segments.Length - 1)
+            {
+                return string.Join("/", segments.Skip(mangaIdx));
+            }
+            
+            return segments.Last();
         }
 
         private static float ParseChapterNumber(string text)
