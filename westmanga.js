@@ -571,34 +571,56 @@ var source = {
     },
 
     getMangaList: function(page, status) {
-        if (status === 1 || status === 2 || status === 4 || status === 6) {
-            return this.getStatusMangaList(page, status);
+        if (status === 1 || status === 2 || status === 4) {
+            var params = "";
+            if (status === 1) {
+                params += "&status=Ongoing";
+            } else if (status === 2 || status === 4) {
+                params += "&status=Completed";
+            }
+            return this.getApiMangaPage(page, params);
         }
         return this.getPopularManga(page);
     },
 
-    getStatusMangaList: function(page, status) {
-        var statusParam = "Ongoing";
-        if (status === 2 || status === 4) {
-            statusParam = "Completed";
-        } else if (status === 6) {
-            statusParam = "Hiatus";
+    getApiMangaPage: function(page, params) {
+        const appPageSize = 14;
+        const apiPageSize = 20;
+        let startIndex = (Math.max(1, page) - 1) * appPageSize;
+        let firstApiPage = Math.floor(startIndex / apiPageSize) + 1;
+        let offset = startIndex % apiPageSize;
+        let collected = [];
+        let sourceTotalPages = 500;
+
+        for (let sourcePage = firstApiPage; collected.length < appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
+            let pageResult = this.getRawApiMangaPage(sourcePage, params);
+            sourceTotalPages = pageResult.totalPages;
+
+            let items = pageResult.items;
+            if (sourcePage === firstApiPage && offset > 0) {
+                items = items.slice(offset);
+            }
+
+            collected = collected.concat(items);
+            if (pageResult.items.length === 0) {
+                break;
+            }
         }
-        // Append orderBy=Update to utilize DB indexes and prevent 15s timeouts on the server
-        return this.getApiMangaPage(page, "&status=" + statusParam + "&orderBy=Update");
+
+        return {
+            items: collected.slice(0, appPageSize),
+            totalPages: Math.max(page, Math.ceil(sourceTotalPages * apiPageSize / appPageSize))
+        };
     },
 
-
-    getApiMangaPage: function(page, params) {
+    getRawApiMangaPage: function(page, params) {
         var path = "/api/contents";
         var url = this.apiUrl + path + "?page=" + page + "&per_page=20&type=Comic" + (params || "");
         var headers = this.getSignatureHeaders(path);
         
         log("WestManga fetching: " + url);
         var response = fetch(url, { headers: headers });
-        log("WestManga response status: " + response.status);
-        log("WestManga response body: " + response.body);
-
+        
         if (response.status !== 200) {
             return { items: [], totalPages: page };
         }
