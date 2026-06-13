@@ -80,61 +80,9 @@ var source = {
         };
     },
 
-    getMangaList: function(page, status) {
-        if (status === 1 || status === 2 || status === 4) {
-            return this.getStatusMangaList(page, status);
-        }
-        return this.getPopularManga(page);
-    },
-
-    getStatusMangaList: function(page, status) {
-        let statusParam = status === 1 ? "ongoing" : "end";
-        
-        const appPageSize = 14;
-        const apiPageSize = 40; // Komiku directory typically has 40 items per page
-        let startIndex = (Math.max(1, page) - 1) * appPageSize;
-        let firstApiPage = Math.floor(startIndex / apiPageSize) + 1;
-        let offset = startIndex % apiPageSize;
-        let collected = [];
-        let sourceTotalPages = 500;
-
-        for (let sourcePage = firstApiPage; collected.length < appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
-            let url = `${this.baseUrl}/daftar-komik/?status=${statusParam}`;
-            if (sourcePage > 1) {
-                url += `&halaman=${sourcePage}`;
-            }
-
-            let response = fetch(url);
-            if (response.status !== 200) {
-                if (collected.length === 0) return { items: [], totalPages: page };
-                break;
-            }
-
-            let doc = Html.parse(response.body, url);
-            let items = this.parseDirectoryMangaList(doc);
-            sourceTotalPages = this.parseTotalPages(doc, sourcePage);
-
-            if (sourcePage === firstApiPage && offset > 0) {
-                items = items.slice(offset);
-            }
-
-            collected = collected.concat(items);
-            if (items.length === 0 && collected.length === 0) {
-                return { items: [], totalPages: page };
-            } else if (items.length === 0) {
-                break;
-            }
-        }
-
-        if (collected.length === 0) {
-            return { items: [], totalPages: page };
-        }
-
-        return {
-            items: collected.slice(0, appPageSize),
-            totalPages: Math.max(page, Math.ceil(sourceTotalPages * apiPageSize / appPageSize))
-        };
-    },
+    // getMangaList and getStatusMangaList have been removed because 
+    // the Komiku website's status filter endpoint (?status=end) is broken and returns 
+    // mostly ongoing manga. Removing this forces the Yomic app to use its local filtering fallback.
 
     getMangaDetails: function(url) {
         let fullUrl = this.baseUrl + url;
