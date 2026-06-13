@@ -175,7 +175,13 @@ var source = {
         if (!titleEl) return [];
         let title = titleEl.text().trim();
 
-        let feedUrl = `${this.apiUrl}/feeds/posts/default/-/${encodeURIComponent(title)}?alt=json&max-results=500`;
+        let label = title;
+        let match = response.body.match(/clwd\.run\(['"]([^'"]+)['"]\)/);
+        if (match && match[1]) {
+            label = match[1].trim();
+        }
+
+        let feedUrl = `${this.apiUrl}/feeds/posts/default/-/${encodeURIComponent(label)}?alt=json&max-results=500`;
         let feedResponse = fetch(feedUrl);
         if (feedResponse.status !== 200) return [];
 
