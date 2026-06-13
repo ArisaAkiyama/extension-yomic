@@ -539,6 +539,8 @@ var source = {
     iconForeground: "#FFFFFF",
     isNsfw: false,
     isHasMorePages: true,
+    requiresProxy: true,
+
 
     getSignatureHeaders: function(path) {
         var timestamp = Math.floor(Date.now() / 1000).toString();
