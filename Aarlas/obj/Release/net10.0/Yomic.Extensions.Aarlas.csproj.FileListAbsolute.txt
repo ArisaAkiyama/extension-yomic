@@ -1,6 +1,0 @@
-d:\Project\DesktopKomik\extension-yomic\Aarlas\obj\Release\net10.0\Yomic.Extensions.Aarlas.csproj.AssemblyReference.cache
-d:\Project\DesktopKomik\extension-yomic\Aarlas\obj\Release\net10.0\Yomic.Extensions.Aarlas.GeneratedMSBuildEditorConfig.editorconfig
-d:\Project\DesktopKomik\extension-yomic\Aarlas\obj\Release\net10.0\Yomic.Extensions.Aarlas.AssemblyInfoInputs.cache
-d:\Project\DesktopKomik\extension-yomic\Aarlas\obj\Release\net10.0\Yomic.Extensions.Aarlas.AssemblyInfo.cs
-d:\Project\DesktopKomik\extension-yomic\Aarlas\obj\Release\net10.0\Yomic.Extensions.Aarlas.csproj.CoreCompileInputs.cache
-d:\Project\DesktopKomik\extension-yomic\Aarlas\obj\Release\net10.0\Yomic.Extensions.Aarlas.sourcelink.json
