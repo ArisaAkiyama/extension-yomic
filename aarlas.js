@@ -68,10 +68,25 @@ var source = {
                 thumbnailUrl = entry.media$thumbnail.url;
                 thumbnailUrl = thumbnailUrl.replace(/\/s[0-9]+(-c)?\//, "/w300/");
             }
+
+            let status = 0;
+            let categories = entry.category || [];
+            for (let cat of categories) {
+                let term = (cat.term || "").toLowerCase();
+                if (term === "ongoing") {
+                    status = 1;
+                    break;
+                } else if (term === "completed") {
+                    status = 2;
+                    break;
+                }
+            }
+
             items.push({
                 title: title,
                 url: relativeUrl,
-                thumbnailUrl: thumbnailUrl
+                thumbnailUrl: thumbnailUrl,
+                status: status
             });
         }
 
@@ -84,7 +99,7 @@ var source = {
     getMangaList: function(page, status) {
         if (status === 1) {
             return this.getBloggerMangaPage(page, "Ongoing");
-        } else if (status === 2) {
+        } else if (status === 2 || status === 4) {
             return this.getBloggerMangaPage(page, "Completed");
         }
         return this.getPopularManga(page);
