@@ -41,80 +41,38 @@ namespace Yomic.Extensions.Komiktap
         private async Task<HtmlDocument> GetHtmlAsync(string url)
         {
             Console.WriteLine($"[Komiktap] GET {url}");
-            
-            // 1. Pre-inject any global saved bypass cookies for this domain
-            try
-            {
-                var uri = new Uri(url);
-                var cookies = Yomic.Core.Services.CloudflareBypassService.Instance.SavedCookies;
-                foreach (var cookie in cookies)
-                {
-                    string domain = cookie.Domain.TrimStart('.');
-                    if (uri.Host.Contains(domain))
-                    {
-                        var netCookie = new System.Net.Cookie(cookie.Name, cookie.Value, "/", cookie.Domain);
-                        CookieContainer.Add(netCookie);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Komiktap] Cookie pre-injection error: {ex.Message}");
-            }
-
             string html = "";
+            bool needsBypass = false;
             try 
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
-                var response = await Client.SendAsync(request);
-                
-                // Detect Sucuri challenge: x-sucuri-id exists but x-sucuri-cache does not
-                bool isSucuriChallenge = response.Headers.Contains("x-sucuri-id") && !response.Headers.Contains("x-sucuri-cache");
-                
+                var response = await Client.GetAsync(url);
                 if (response.StatusCode == System.Net.HttpStatusCode.Forbidden || 
                     response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                    isSucuriChallenge)
+                    response.Headers.Contains("x-sucuri-id"))
                 {
-                    Console.WriteLine($"[Komiktap] Challenge detected (Status: {response.StatusCode}, Sucuri: {isSucuriChallenge}). Invoking bypass...");
-                    html = await Yomic.Core.Services.CloudflareBypassService.Instance.GetContentAsync(url);
-                    
-                    // Copy new cookies
-                    var uri = new Uri(url);
-                    var newCookies = Yomic.Core.Services.CloudflareBypassService.Instance.SavedCookies;
-                    foreach (var cookie in newCookies)
-                    {
-                        string domain = cookie.Domain.TrimStart('.');
-                        if (uri.Host.Contains(domain))
-                        {
-                            var netCookie = new System.Net.Cookie(cookie.Name, cookie.Value, "/", cookie.Domain);
-                            CookieContainer.Add(netCookie);
-                        }
-                    }
+                    needsBypass = true;
                 }
                 else
                 {
-                    response.EnsureSuccessStatusCode();
                     html = await response.Content.ReadAsStringAsync();
+                    if (html.Contains("sucuri") && html.Contains("cookie") && !html.Contains("entry-title") && !html.Contains("readerarea"))
+                    {
+                        needsBypass = true;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Komiktap] Direct request failed: {ex.Message}. Attempting Cloudflare Bypass...");
+                Console.WriteLine($"[Komiktap] Request error: {ex.Message}. Attempting Cloudflare Bypass...");
+                needsBypass = true;
+            }
+
+            if (needsBypass)
+            {
+                Console.WriteLine($"[Komiktap] Access Denied or Challenge detected. Attempting Cloudflare Bypass...");
                 try 
                 {
                     html = await Yomic.Core.Services.CloudflareBypassService.Instance.GetContentAsync(url);
-                    
-                    var uri = new Uri(url);
-                    var newCookies = Yomic.Core.Services.CloudflareBypassService.Instance.SavedCookies;
-                    foreach (var cookie in newCookies)
-                    {
-                        string domain = cookie.Domain.TrimStart('.');
-                        if (uri.Host.Contains(domain))
-                        {
-                            var netCookie = new System.Net.Cookie(cookie.Name, cookie.Value, "/", cookie.Domain);
-                            CookieContainer.Add(netCookie);
-                        }
-                    }
                 }
                 catch (Exception bypassEx)
                 {
