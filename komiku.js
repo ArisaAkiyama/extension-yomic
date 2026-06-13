@@ -12,7 +12,7 @@ var source = {
     isHasMorePages: true,
 
     getPopularManga: function(page) {
-        return this.getApiMangaPage(page, "?orderby=meta_value_num", 500);
+        return this.getApiMangaPage(page, "?orderby=meta_value_num", 737, "probe-known-end");
     },
 
     getLatestUpdates: function(page) {
