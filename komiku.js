@@ -89,14 +89,14 @@ var source = {
 
     getStatusMangaList: function(page, status) {
         let statusParam = status === 1 ? "ongoing" : "end";
-        let queryString = `?status=${statusParam}`;
+        let queryString = `?statusmanga=${statusParam}&orderby=meta_value_num`;
         
         let result = this.getApiMangaPage(page, queryString, 500);
         
-        // Inject the requested status into the returned items to ensure
-        // Yomic's local status filtering does not discard them (like westmanga.js)
-        for (let i = 0; i < result.items.length; i++) {
-            result.items[i].status = status;
+        if (result && result.items) {
+            for (let i = 0; i < result.items.length; i++) {
+                result.items[i].status = status;
+            }
         }
         
         return result;
