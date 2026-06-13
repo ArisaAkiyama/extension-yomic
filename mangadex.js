@@ -147,7 +147,7 @@ var source = {
             description: "",
             author: "",
             status: 0,
-            genres: []
+            genre: []
         };
         
         if (item.attributes) {
@@ -166,7 +166,7 @@ var source = {
                 for (let i = 0; i < item.attributes.tags.length; i++) {
                     let tag = item.attributes.tags[i];
                     if (tag.attributes && tag.attributes.name && tag.attributes.name.en) {
-                        manga.genres.push(tag.attributes.name.en);
+                        manga.genre.push(tag.attributes.name.en);
                     }
                 }
             }
@@ -211,7 +211,7 @@ var source = {
             for (let i = 0; i < json.data.length; i++) {
                 let item = json.data[i];
                 let chapter = {
-                    title: "",
+                    name: "",
                     url: `/chapter/${item.id}`,
                     chapterNumber: 0,
                     volumeNumber: "",
@@ -225,13 +225,13 @@ var source = {
                     let title = item.attributes.title ? `- ${item.attributes.title}` : "";
                     
                     if (!vol && !ch && !title) {
-                        chapter.title = "Oneshot";
+                        chapter.name = "Oneshot";
                     } else {
-                        chapter.title = `${vol}${ch}${title}`.trim();
+                        chapter.name = `${vol}${ch}${title}`.trim();
                         // Prepend language to title
                         let lang = item.attributes.translatedLanguage;
                         if (lang) {
-                            chapter.title = `[${lang.toUpperCase()}] ${chapter.title}`;
+                            chapter.name = `[${lang.toUpperCase()}] ${chapter.name}`;
                         }
                     }
                     
