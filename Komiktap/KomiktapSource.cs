@@ -42,34 +42,13 @@ namespace Yomic.Extensions.Komiktap
         {
             Console.WriteLine($"[Komiktap] GET {url}");
             string html = "";
-            bool needsBypass = false;
             try 
             {
-                var response = await Client.GetAsync(url);
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden || 
-                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                    response.Headers.Contains("x-sucuri-id"))
-                {
-                    needsBypass = true;
-                }
-                else
-                {
-                    html = await response.Content.ReadAsStringAsync();
-                    if (html.Contains("sucuri") && html.Contains("cookie") && !html.Contains("entry-title") && !html.Contains("readerarea"))
-                    {
-                        needsBypass = true;
-                    }
-                }
+                html = await Client.GetStringAsync(url);
             }
-            catch (Exception ex)
+            catch(HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden || ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
-                Console.WriteLine($"[Komiktap] Request error: {ex.Message}. Attempting Cloudflare Bypass...");
-                needsBypass = true;
-            }
-
-            if (needsBypass)
-            {
-                Console.WriteLine($"[Komiktap] Access Denied or Challenge detected. Attempting Cloudflare Bypass...");
+                Console.WriteLine($"[Komiktap] Access Denied ({ex.StatusCode}). Attempting Cloudflare Bypass...");
                 try 
                 {
                     html = await Yomic.Core.Services.CloudflareBypassService.Instance.GetContentAsync(url);
