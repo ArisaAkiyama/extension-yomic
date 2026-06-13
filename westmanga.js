@@ -638,10 +638,17 @@ var source = {
         var items = [];
         for (var i = 0; i < data.length; i++) {
             var item = data[i];
+            var mangaStatus = 0;
+            if (item.status) {
+                var statusStr = item.status.toLowerCase();
+                if (statusStr.indexOf("ongoing") !== -1) mangaStatus = 1;
+                else if (statusStr.indexOf("completed") !== -1 || statusStr.indexOf("end") !== -1) mangaStatus = 2;
+            }
             items.push({
                 title: item.title,
                 url: "/manga/" + item.slug + "/",
-                thumbnailUrl: item.cover
+                thumbnailUrl: item.cover,
+                status: mangaStatus
             });
         }
         
