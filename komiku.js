@@ -81,6 +81,33 @@ var source = {
         };
     },
 
+    getMangaList: function(page, status) {
+        if (status === 1 || status === 2 || status === 4) {
+            return this.getStatusMangaList(page, status);
+        }
+        return this.getPopularManga(page);
+    },
+
+    getStatusMangaList: function(page, status) {
+        let statusParam = status === 1 ? "ongoing" : "end";
+        let url = `${this.baseUrl}/daftar-komik/?status=${statusParam}`;
+        if (page > 1) {
+            url += `&halaman=${page}`;
+        }
+
+        let response = fetch(url);
+        if (response.status !== 200) return { items: [], totalPages: page };
+
+        let doc = Html.parse(response.body, url);
+        let items = this.parseDirectoryMangaList(doc);
+        let totalPages = this.parseTotalPages(doc, page);
+
+        return {
+            items: items,
+            totalPages: totalPages
+        };
+    },
+
     getMangaDetails: function(url) {
         let fullUrl = this.baseUrl + url;
         let response = fetch(fullUrl);
@@ -221,6 +248,69 @@ var source = {
             }
         }
         return mangas;
+    },
+
+    parseDirectoryMangaList: function(doc) {
+        let mangas = [];
+        let items = doc.querySelectorAll("article.manga-card");
+        for (let item of items) {
+            let titleEl = item.querySelector("h4 a");
+            let aEl = item.querySelector("a");
+            let imgEl = item.querySelector("img");
+            let metaEl = item.querySelector("p.meta");
+
+            if (titleEl && aEl) {
+                let href = aEl.attr("href");
+                let relativeUrl = href;
+                if (href.startsWith(this.baseUrl)) {
+                    relativeUrl = href.substring(this.baseUrl.length);
+                }
+
+                let status = 0;
+                let metaText = metaEl ? metaEl.text().toLowerCase() : "";
+                if (metaText.includes("status: ongoing")) {
+                    status = 1;
+                } else if (metaText.includes("status: end") || metaText.includes("status: tamat") || metaText.includes("status: completed")) {
+                    status = 2;
+                }
+
+                let thumbnailUrl = "";
+                if (imgEl) {
+                    thumbnailUrl = imgEl.absUrl("data-src");
+                    if (!thumbnailUrl) thumbnailUrl = imgEl.absUrl("src");
+                }
+
+                mangas.push({
+                    title: titleEl.text().trim(),
+                    url: relativeUrl,
+                    thumbnailUrl: thumbnailUrl,
+                    status: status
+                });
+            }
+        }
+        return mangas;
+    },
+
+    parseTotalPages: function(doc, currentPage) {
+        let pageInfoEls = doc.querySelectorAll(".page-info");
+        for (let el of pageInfoEls) {
+            let text = el.text();
+            let match = text.match(/Halaman\s+\d+\s+dari\s+(\d+)/i);
+            if (match) {
+                return parseInt(match[1]);
+            }
+        }
+
+        let maxPage = currentPage;
+        let links = doc.querySelectorAll(".pagination a");
+        for (let link of links) {
+            let text = link.text().trim();
+            let value = parseInt(text);
+            if (!isNaN(value) && value > maxPage) {
+                maxPage = value;
+            }
+        }
+        return maxPage;
     },
 
     parseDate: function(dateStr) {
