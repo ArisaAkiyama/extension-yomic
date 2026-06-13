@@ -137,7 +137,7 @@ var source = {
                     if (val.trim() !== "") {
                         description += "\n\nJudul Indonesia: " + val.trim();
                     }
-                } else if (key.includes("Pengarang") || key.includes("Komikus")) {
+                } else if (key.includes("Pengarang") || key.includes("Komikus") || key.includes("Author")) {
                     author = val.trim();
                 } else if (key.includes("Status")) {
                     let statusStr = val.trim().toLowerCase();
