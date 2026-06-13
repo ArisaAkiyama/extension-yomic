@@ -12,68 +12,67 @@ var source = {
     isHasMorePages: true,
 
     getPopularManga: function(page) {
+        return this.getApiMangaPage(page, "?orderby=meta_value_num", 500);
+    },
+
+    getLatestUpdates: function(page) {
+        return this.getApiMangaPage(page, "?orderby=modified", 500);
+    },
+
+    getSearchManga: function(query, page) {
+        let queryString = "";
+        if (query && query.trim() !== "") {
+            queryString = `?s=${encodeURIComponent(query)}`;
+        }
+        return this.getApiMangaPage(page, queryString, 50);
+    },
+
+    getApiMangaPage: function(page, queryString, estimatedPages) {
+        const appPageSize = 14;
+        const apiPageSize = 10;
+        let startIndex = (Math.max(1, page) - 1) * appPageSize;
+        let firstApiPage = Math.floor(startIndex / apiPageSize) + 1;
+        let offset = startIndex % apiPageSize;
+        let collected = [];
+        let sourceTotalPages = estimatedPages || 500;
+
+        for (let sourcePage = firstApiPage; collected.length < appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
+            let pageResult = this.getRawApiMangaPage(sourcePage, queryString, sourceTotalPages);
+            sourceTotalPages = pageResult.totalPages;
+
+            let items = pageResult.items;
+            if (sourcePage === firstApiPage && offset > 0) {
+                items = items.slice(offset);
+            }
+
+            collected = collected.concat(items);
+            if (pageResult.items.length === 0) {
+                break;
+            }
+        }
+
+        return {
+            items: collected.slice(0, appPageSize),
+            totalPages: Math.max(page, Math.ceil(sourceTotalPages * apiPageSize / appPageSize))
+        };
+    },
+
+    getRawApiMangaPage: function(page, queryString, estimatedPages) {
         let url = `${this.apiUrl}/manga`;
         if (page > 1) {
             url += `/page/${page}`;
         }
-        url += "?orderby=meta_value_num";
+        url += queryString || "";
         
         let response = fetch(url);
-        if (response.status !== 200) return [];
+        if (response.status !== 200) return { items: [], totalPages: page };
         
         let doc = Html.parse(response.body, url);
         let items = this.parseMangaList(doc);
         
         // Komiku uses infinite scroll, so exact total pages is not provided.
-        // We estimate 500 pages (approx 15,000 manga).
         let hasNext = doc.querySelector("[hx-get]") != null;
-        let total = hasNext ? Math.max(page + 1, 500) : page;
-        
-        return {
-            items: items,
-            totalPages: total
-        };
-    },
-
-    getLatestUpdates: function(page) {
-        let url = `${this.apiUrl}/manga`;
-        if (page > 1) {
-            url += `/page/${page}`;
-        }
-        url += "?orderby=modified";
-        
-        let response = fetch(url);
-        if (response.status !== 200) return [];
-        
-        let doc = Html.parse(response.body, url);
-        let items = this.parseMangaList(doc);
-        
-        let hasNext = doc.querySelector("[hx-get]") != null;
-        let total = hasNext ? Math.max(page + 1, 500) : page;
-        
-        return {
-            items: items,
-            totalPages: total
-        };
-    },
-
-    getSearchManga: function(query, page) {
-        let url = `${this.apiUrl}/manga`;
-        if (page > 1) {
-            url += `/page/${page}`;
-        }
-        if (query && query.trim() !== "") {
-            url += `?s=${encodeURIComponent(query)}`;
-        }
-        
-        let response = fetch(url);
-        if (response.status !== 200) return [];
-        
-        let doc = Html.parse(response.body, url);
-        let items = this.parseMangaList(doc);
-        
-        let hasNext = doc.querySelector("[hx-get]") != null;
-        let total = hasNext ? Math.max(page + 1, 50) : page; // Search results have fewer pages
+        let total = hasNext ? Math.max(page + 1, estimatedPages || 500) : page;
         
         return {
             items: items,
