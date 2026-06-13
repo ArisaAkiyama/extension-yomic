@@ -27,7 +27,7 @@ var source = {
         return this.getApiMangaPage(page, queryString, 50);
     },
 
-    getApiMangaPage: function(page, queryString, estimatedPages, forceStatus) {
+    getApiMangaPage: function(page, queryString, estimatedPages) {
         const appPageSize = 14;
         const apiPageSize = 10;
         let startIndex = (Math.max(1, page) - 1) * appPageSize;
@@ -37,7 +37,7 @@ var source = {
         let sourceTotalPages = estimatedPages || 500;
 
         for (let sourcePage = firstApiPage; collected.length < appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
-            let pageResult = this.getRawApiMangaPage(sourcePage, queryString, sourceTotalPages, forceStatus);
+            let pageResult = this.getRawApiMangaPage(sourcePage, queryString, sourceTotalPages);
             sourceTotalPages = pageResult.totalPages;
 
             let items = pageResult.items;
@@ -51,17 +51,13 @@ var source = {
             }
         }
 
-        if (collected.length === 0) {
-            return { items: [], totalPages: page };
-        }
-
         return {
             items: collected.slice(0, appPageSize),
             totalPages: Math.max(page, Math.ceil(sourceTotalPages * apiPageSize / appPageSize))
         };
     },
 
-    getRawApiMangaPage: function(page, queryString, estimatedPages, forceStatus) {
+    getRawApiMangaPage: function(page, queryString, estimatedPages) {
         let url = `${this.apiUrl}/manga`;
         if (page > 1) {
             url += `/page/${page}`;
@@ -72,7 +68,7 @@ var source = {
         if (response.status !== 200) return { items: [], totalPages: page };
         
         let doc = Html.parse(response.body, url);
-        let items = this.parseMangaList(doc, forceStatus);
+        let items = this.parseMangaList(doc);
         
         // Komiku uses infinite scroll, so exact total pages is not provided.
         let hasNext = doc.querySelector("[hx-get]") != null;
@@ -86,10 +82,24 @@ var source = {
 
     getMangaList: function(page, status) {
         if (status === 1 || status === 2 || status === 4) {
-            let statusParam = status === 1 ? "ongoing" : "end";
-            return this.getApiMangaPage(page, `?status=${statusParam}`, 500, status);
+            return this.getStatusMangaList(page, status);
         }
         return this.getPopularManga(page);
+    },
+
+    getStatusMangaList: function(page, status) {
+        let statusParam = status === 1 ? "ongoing" : "end";
+        let queryString = `?status=${statusParam}`;
+        
+        let result = this.getApiMangaPage(page, queryString, 500);
+        
+        // Inject the requested status into the returned items to ensure
+        // Yomic's local status filtering does not discard them (like westmanga.js)
+        for (let i = 0; i < result.items.length; i++) {
+            result.items[i].status = status;
+        }
+        
+        return result;
     },
 
     getMangaDetails: function(url) {
@@ -209,7 +219,7 @@ var source = {
         return pages;
     },
 
-    parseMangaList: function(doc, forceStatus) {
+    parseMangaList: function(doc) {
         let mangas = [];
         let items = doc.querySelectorAll("div.bge");
         for (let item of items) {
@@ -227,8 +237,7 @@ var source = {
                 mangas.push({
                     title: titleEl.text(),
                     url: relativeUrl,
-                    thumbnailUrl: imgEl ? imgEl.absUrl("src") : "",
-                    status: forceStatus || 0
+                    thumbnailUrl: imgEl ? imgEl.absUrl("src") : ""
                 });
             }
         }
