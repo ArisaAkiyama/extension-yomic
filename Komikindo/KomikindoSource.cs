@@ -264,6 +264,54 @@ namespace Yomic.Extensions.Komikindo
                 }
             }
 
+            // Strategy 3: Table infotable
+            string artist = "";
+            if (status == Manga.UNKNOWN || author == "Unknown")
+            {
+                var infoRows = doc.DocumentNode.SelectNodes("//table[@class='infotable']//tr");
+                if (infoRows != null)
+                {
+                    foreach (var row in infoRows)
+                    {
+                        var labelNode = row.SelectSingleNode("./td[1]");
+                        var valueNode = row.SelectSingleNode("./td[2]");
+                        if (labelNode != null && valueNode != null)
+                        {
+                            string label = labelNode.InnerText.Trim().ToLower();
+                            string val = System.Net.WebUtility.HtmlDecode(valueNode.InnerText).Trim();
+                            if (label.Contains("status"))
+                            {
+                                if (status == Manga.UNKNOWN)
+                                {
+                                    status = val.ToLower() switch
+                                    {
+                                        "ongoing" or "berjalan" => Manga.ONGOING,
+                                        "completed" or "tamat" or "selesai" => Manga.COMPLETED,
+                                        "hiatus" => Manga.ON_HIATUS,
+                                        "cancelled" or "dropped" => Manga.CANCELLED,
+                                        _ => Manga.UNKNOWN
+                                    };
+                                }
+                            }
+                            else if (label.Contains("author") || label.Contains("penulis") || label.Contains("pengarang"))
+                            {
+                                if (author == "Unknown" && !string.IsNullOrEmpty(val))
+                                {
+                                    author = val;
+                                }
+                            }
+                            else if (label.Contains("artist") || label.Contains("ilustrator") || label.Contains("art"))
+                            {
+                                if (string.IsNullOrEmpty(artist) && !string.IsNullOrEmpty(val))
+                                {
+                                    artist = val;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Genres
             var genreNodes = doc.DocumentNode.SelectNodes("//div[contains(@class,'seriestugenre')]//a")
                           ?? doc.DocumentNode.SelectNodes("//span[contains(@class,'mgen')]//a");
@@ -278,6 +326,7 @@ namespace Yomic.Extensions.Komikindo
                 ThumbnailUrl = AdjustCoverUrl(cover),
                 Description = synopsis,
                 Author = author,
+                Artist = string.IsNullOrEmpty(artist) ? null : artist,
                 Status = status,
                 Source = this.Id,
                 Genre = genres
