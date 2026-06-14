@@ -5,7 +5,7 @@ var source = {
     uploadsUrl: "https://uploads.mangadex.org",
     language: "en",
     selectedLanguage: "en",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "MangaDex extension implemented in JavaScript using the official MangaDex API",
     author: "DesktopKomik",
     iconBackground: "#ff6740",
@@ -142,15 +142,17 @@ var source = {
         if (!chapterId) return [];
 
         let json = this.getJson(this.apiUrl + "/at-home/server/" + encodeURIComponent(chapterId));
-        if (!json || !json.chapter || !json.chapter.data) return [];
+        if (!json || !json.chapter) return [];
 
         let baseUrl = json.baseUrl || "";
         let hash = json.chapter.hash || "";
-        let files = json.chapter.data || [];
+        let useDataSaver = json.chapter.dataSaver && json.chapter.dataSaver.length > 0;
+        let qualityPath = useDataSaver ? "data-saver" : "data";
+        let files = useDataSaver ? json.chapter.dataSaver : (json.chapter.data || []);
         let pages = [];
 
         for (let i = 0; i < files.length; i++) {
-            pages.push(baseUrl + "/data/" + hash + "/" + files[i]);
+            pages.push(baseUrl + "/" + qualityPath + "/" + hash + "/" + files[i] + "|Referer=https://mangadex.org&Origin=https://mangadex.org");
         }
 
         return pages;
