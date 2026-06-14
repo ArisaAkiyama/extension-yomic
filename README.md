@@ -1,25 +1,25 @@
 # Extension Yomic
 
-Collection of source extensions for [Yomic Application](https://github.com/ArisaAkiyama/yomic).
+Collection of JavaScript source extensions for [Yomic Application](https://github.com/ArisaAkiyama/yomic).
 
+Repository: [ArisaAkiyama/extension-yomic](https://github.com/ArisaAkiyama/extension-yomic)
 
+## Available Extensions
 
-### Available Extensions
+| Extension | File | Language | Version | Description |
+|-----------|------|----------|---------|-------------|
+| **Aarlas** | `aarlas.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari Aarlas |
+| **Komiku** | `komiku.js` | ID | Latest | Baca komik Bahasa Indonesia dari Komiku |
+| **MangaDex** | `mangadex.js` | EN/ID | 1.0.2 | Read manga from MangaDex with English and Indonesian language switching |
+| **WeebCentral** | `weebcentral.js` | EN | 1.0.0 | Read English manga from WeebCentral |
+| **WestManga** | `westmanga.js` | ID | Latest | Baca komik Bahasa Indonesia dari WestManga |
 
-| Extension | Version | Description |
-|-----------|---------|-------------|
-| **Kiryuu** | Latest | Baca komik Bahasa Indonesia dari Kiryuu |
-| **KomikCast** | Latest | Baca komik Bahasa Indonesia dari KomikCast |
-| **Komiku** | Latest | Baca komik Bahasa Indonesia dari Komiku |
-| **Maid** | Latest | Baca komik Bahasa Indonesia dari maid.my.id |
-| **Mangabats** | Latest | Read English manga from Mangabats |
-| **MangaDex** | Latest | Read manga from MangaDex |
-| **ManhwaIndo** | Latest | Baca komik Bahasa Indonesia dari ManhwaIndo |
-| **NHentai** | Latest | Baca doujin offline dari NHentai |
-| **Softkomik** | Latest | Baca komik Bahasa Indonesia dari Softkomik |
-| **Weebcentral** | Latest | Read English manga from Weebcentral |
-| **WestManga** | Latest | Baca komik Bahasa Indonesia dari WestManga |
+## Notes
+
+- Yomic now focuses on JavaScript extensions.
+- DLL/plugin assembly loading is no longer used by the app.
+- Install only `.js` source files into the Yomic plugin folder.
 
 ## Development
 
-These extensions are built using .NET. Include them in the main Yomic solution to debug or modify.
+Each extension exports a global `source` object and is executed by Yomic's JavaScript source engine.
