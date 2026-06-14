@@ -2,287 +2,276 @@ var source = {
     name: "MangaDex",
     baseUrl: "https://mangadex.org",
     apiUrl: "https://api.mangadex.org",
-    language: "en,id",
+    uploadsUrl: "https://uploads.mangadex.org",
+    language: "en",
     version: "1.0.0",
-    description: "MangaDex extension implemented in JavaScript using Jint Engine",
+    description: "MangaDex English extension implemented in JavaScript using the official MangaDex API",
     author: "DesktopKomik",
-    iconBackground: "#FF6740",
-    iconForeground: "#FFFFFF",
-    isNsfw: true, // MangaDex has explicit content
+    iconBackground: "#ff6740",
+    iconForeground: "#ffffff",
+    isNsfw: false,
     isHasMorePages: true,
-    
-    appPageSize: 14,
-    apiPageSize: 30, // We can request up to 100, let's use 30 for safe margins
-    
-    getLangsParam: function() {
-        return "&availableTranslatedLanguage[]=en&availableTranslatedLanguage[]=id";
+
+    pageSize: 14,
+    chapterPageSize: 100,
+
+    getPopularManga: function(page) {
+        return this.getMangaPage(page, {
+            "order[followedCount]": "desc"
+        });
     },
 
-    getTranslatedLangsParam: function() {
-        return "&translatedLanguage[]=en&translatedLanguage[]=id";
+    getLatestUpdates: function(page) {
+        return this.getMangaPage(page, {
+            "order[latestUploadedChapter]": "desc"
+        });
     },
 
-    parseMangaList: function(responseBody) {
-        let json = JSON.parse(responseBody);
-        if (!json || json.result !== "ok" || !json.data) return [];
-        
-        let result = [];
-        for (let i = 0; i < json.data.length; i++) {
-            let item = json.data[i];
-            let manga = {
-                title: "",
-                url: `/manga/${item.id}`,
-                thumbnailUrl: "",
-                status: 0 // Unknown
-            };
-            
-            // Title
-            if (item.attributes && item.attributes.title) {
-                manga.title = item.attributes.title.en || Object.values(item.attributes.title)[0] || "Unknown";
-            }
-            
-            // Status map: ongoing=1, completed=2, hiatus=3, cancelled=4
-            if (item.attributes && item.attributes.status) {
-                let s = item.attributes.status;
-                if (s === "ongoing") manga.status = 1;
-                else if (s === "completed") manga.status = 2;
-                else if (s === "hiatus") manga.status = 3;
-                else if (s === "cancelled") manga.status = 4;
-            }
-            
-            // Cover
-            if (item.relationships) {
-                let coverArt = item.relationships.find(x => x.type === "cover_art");
-                if (coverArt && coverArt.attributes && coverArt.attributes.fileName) {
-                    manga.thumbnailUrl = `https://uploads.mangadex.org/covers/${item.id}/${coverArt.attributes.fileName}.512.jpg`;
+    getSearchManga: function(query, page) {
+        let params = {
+            "order[relevance]": "desc"
+        };
+        if (query && query.trim() !== "") {
+            params.title = query.trim();
+        }
+        return this.getMangaPage(page, params);
+    },
+
+    getMangaPage: function(page, extraParams) {
+        let currentPage = Math.max(1, page || 1);
+        let params = {
+            limit: this.pageSize,
+            offset: (currentPage - 1) * this.pageSize,
+            "availableTranslatedLanguage[]": "en",
+            "includes[]": "cover_art",
+            "contentRating[]": ["safe", "suggestive", "erotica"]
+        };
+
+        for (let key in extraParams) {
+            params[key] = extraParams[key];
+        }
+
+        let json = this.getJson(this.apiUrl + "/manga" + this.toQuery(params));
+        if (!json || !json.data) {
+            return { items: [], totalPages: currentPage };
+        }
+
+        let total = typeof json.total === "number" ? json.total : ((currentPage - 1) * this.pageSize + json.data.length);
+        return {
+            items: json.data.map(manga => this.parseManga(manga)),
+            totalPages: Math.max(1, Math.ceil(total / this.pageSize))
+        };
+    },
+
+    getMangaDetails: function(url) {
+        let id = this.extractId(url);
+        if (!id) return {};
+
+        let json = this.getJson(this.apiUrl + "/manga/" + encodeURIComponent(id) + this.toQuery({
+            "includes[]": ["cover_art", "author", "artist"]
+        }));
+        if (!json || !json.data) return {};
+
+        let manga = json.data;
+        let attr = manga.attributes || {};
+        let authors = this.getRelationshipNames(manga, "author");
+        let artists = this.getRelationshipNames(manga, "artist");
+        let authorText = authors.length > 0 ? authors.join(", ") : artists.join(", ");
+
+        return {
+            title: this.pickLocalized(attr.title) || this.getBestAltTitle(attr.altTitles) || "",
+            url: "/title/" + manga.id,
+            thumbnailUrl: this.getCoverUrl(manga),
+            author: authorText,
+            status: this.mapStatus(attr.status),
+            description: this.pickLocalized(attr.description) || "",
+            genre: this.getTags(attr.tags),
+            source: this.id
+        };
+    },
+
+    getChapterList: function(mangaUrl) {
+        let mangaId = this.extractId(mangaUrl);
+        if (!mangaId) return [];
+
+        let offset = 0;
+        let chapters = [];
+        let total = 1;
+
+        while (offset < total && offset < 10000) {
+            let json = this.getJson(this.apiUrl + "/manga/" + encodeURIComponent(mangaId) + "/feed" + this.toQuery({
+                limit: this.chapterPageSize,
+                offset: offset,
+                "translatedLanguage[]": "en",
+                "contentRating[]": ["safe", "suggestive", "erotica"],
+                "includeFutureUpdates": "0",
+                "order[chapter]": "desc",
+                "order[volume]": "desc"
+            }));
+
+            if (!json || !json.data) break;
+            total = typeof json.total === "number" ? json.total : json.data.length;
+
+            for (let i = 0; i < json.data.length; i++) {
+                let chapter = json.data[i];
+                let attr = chapter.attributes || {};
+                let chapterNumber = attr.chapter || "";
+                let title = attr.title || "";
+                let name = chapterNumber ? "Chapter " + chapterNumber : "Chapter";
+                if (title) {
+                    name += " - " + title;
                 }
+
+                chapters.push({
+                    name: name,
+                    url: "/chapter/" + chapter.id,
+                    dateUpload: this.parseDate(attr.publishAt || attr.createdAt || attr.updatedAt)
+                });
             }
-            
-            result.push(manga);
+
+            if (json.data.length === 0) break;
+            offset += json.data.length;
+        }
+
+        return chapters;
+    },
+
+    getPageList: function(chapterUrl) {
+        let chapterId = this.extractId(chapterUrl);
+        if (!chapterId) return [];
+
+        let json = this.getJson(this.apiUrl + "/at-home/server/" + encodeURIComponent(chapterId));
+        if (!json || !json.chapter || !json.chapter.data) return [];
+
+        let baseUrl = json.baseUrl || "";
+        let hash = json.chapter.hash || "";
+        let files = json.chapter.data || [];
+        let pages = [];
+
+        for (let i = 0; i < files.length; i++) {
+            pages.push(baseUrl + "/data/" + hash + "/" + files[i]);
+        }
+
+        return pages;
+    },
+
+    parseManga: function(manga) {
+        let attr = manga.attributes || {};
+        return {
+            title: this.pickLocalized(attr.title) || this.getBestAltTitle(attr.altTitles) || "",
+            url: "/title/" + manga.id,
+            thumbnailUrl: this.getCoverUrl(manga),
+            status: this.mapStatus(attr.status),
+            source: this.id
+        };
+    },
+
+    getCoverUrl: function(manga) {
+        let coverFile = "";
+        let relationships = manga.relationships || [];
+        for (let i = 0; i < relationships.length; i++) {
+            let rel = relationships[i];
+            if (rel.type === "cover_art" && rel.attributes && rel.attributes.fileName) {
+                coverFile = rel.attributes.fileName;
+                break;
+            }
+        }
+
+        if (!coverFile) return "";
+        return this.uploadsUrl + "/covers/" + manga.id + "/" + coverFile + ".256.jpg";
+    },
+
+    getRelationshipNames: function(manga, type) {
+        let names = [];
+        let relationships = manga.relationships || [];
+        for (let i = 0; i < relationships.length; i++) {
+            let rel = relationships[i];
+            if (rel.type === type && rel.attributes && rel.attributes.name) {
+                names.push(rel.attributes.name);
+            }
+        }
+        return names;
+    },
+
+    getTags: function(tags) {
+        let result = [];
+        tags = tags || [];
+        for (let i = 0; i < tags.length; i++) {
+            let name = this.pickLocalized((tags[i].attributes || {}).name);
+            if (name) result.push(name);
         }
         return result;
     },
 
-    getApiMangaPage: function(page, queryString) {
-        let startIndex = (Math.max(1, page) - 1) * this.appPageSize;
-        let firstApiPage = Math.floor(startIndex / this.apiPageSize) + 1;
-        let offset = startIndex % this.apiPageSize;
-        let collected = [];
-        let sourceTotalPages = 9999;
-        
-        let ratings = "&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic";
-        
-        for (let sourcePage = firstApiPage; collected.length < this.appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
-            let apiOffset = (sourcePage - 1) * this.apiPageSize;
-            let url = `${this.apiUrl}/manga?limit=${this.apiPageSize}&offset=${apiOffset}&includes[]=cover_art${this.getLangsParam()}${ratings}${queryString}`;
-            
-            let response = fetch(url);
-            if (response.status !== 200) break;
-            
-            let items = this.parseMangaList(response.body);
-            if (items.length === 0) break;
-            
-            let json = JSON.parse(response.body);
-            if (json.total) {
-                sourceTotalPages = Math.ceil(json.total / this.apiPageSize);
-            }
-            
-            if (sourcePage === firstApiPage && offset > 0) {
-                items = items.slice(offset);
-            }
-            
-            collected = collected.concat(items);
-            if (items.length < this.apiPageSize && sourcePage > firstApiPage) {
-                break;
-            }
+    pickLocalized: function(values) {
+        if (!values) return "";
+        return values.en || values["en-us"] || values.ja || values["ja-ro"] || values.ko || values["ko-ro"] || values.zh || values["zh-ro"] || this.firstValue(values);
+    },
+
+    getBestAltTitle: function(altTitles) {
+        altTitles = altTitles || [];
+        for (let i = 0; i < altTitles.length; i++) {
+            let value = this.pickLocalized(altTitles[i]);
+            if (value) return value;
         }
-        
-        return {
-            items: collected.slice(0, this.appPageSize),
-            totalPages: sourceTotalPages >= 9999 ? 9999 : Math.max(page, Math.ceil(sourceTotalPages * this.apiPageSize / this.appPageSize))
-        };
+        return "";
     },
 
-    getPopularManga: function(page) {
-        return this.getApiMangaPage(page, "&order[followedCount]=desc");
-    },
-
-    getLatestUpdates: function(page) {
-        return this.getApiMangaPage(page, "&order[latestUploadedChapter]=desc");
-    },
-
-    getSearchManga: function(query, page) {
-        let q = "";
-        if (query && query.trim() !== "") {
-            q = `&title=${encodeURIComponent(query)}`;
+    firstValue: function(obj) {
+        for (let key in obj) {
+            if (obj[key]) return obj[key];
         }
-        return this.getApiMangaPage(page, q);
+        return "";
     },
 
-    getMangaList: function(page, status) {
-        let statusParam = "";
-        if (status === 1) statusParam = "&status[]=ongoing";
-        else if (status === 2) statusParam = "&status[]=completed";
-        else if (status === 3) statusParam = "&status[]=hiatus";
-        else if (status === 4) statusParam = "&status[]=cancelled";
-        
-        return this.getApiMangaPage(page, `&order[followedCount]=desc${statusParam}`);
+    mapStatus: function(status) {
+        status = (status || "").toLowerCase();
+        if (status === "ongoing") return 1;
+        if (status === "completed") return 2;
+        if (status === "hiatus") return 3;
+        if (status === "cancelled") return 4;
+        return 0;
     },
 
-    getMangaDetails: function(url) {
-        let id = url.replace("/manga/", "").split("/")[0];
-        let reqUrl = `${this.apiUrl}/manga/${id}?includes[]=author&includes[]=artist&includes[]=cover_art`;
-        
-        let response = fetch(reqUrl);
-        if (response.status !== 200) return null;
-        
-        let json = JSON.parse(response.body);
-        if (!json || json.result !== "ok" || !json.data) return null;
-        
-        let item = json.data;
-        let manga = {
-            title: "",
-            url: url,
-            thumbnailUrl: "",
-            description: "",
-            author: "",
-            status: 0,
-            genre: []
-        };
-        
-        if (item.attributes) {
-            manga.title = item.attributes.title.en || Object.values(item.attributes.title)[0] || "Unknown";
-            if (item.attributes.description) {
-                manga.description = item.attributes.description.en || Object.values(item.attributes.description)[0] || "";
+    extractId: function(url) {
+        if (!url) return "";
+        let clean = url.split("?")[0].replace(this.baseUrl, "");
+        let parts = clean.split("/").filter(x => x && x.trim() !== "");
+        if (parts.length >= 2 && (parts[0] === "title" || parts[0] === "chapter")) {
+            return parts[1];
+        }
+        return parts.length > 0 ? parts[parts.length - 1] : "";
+    },
+
+    parseDate: function(value) {
+        if (!value) return 0;
+        let time = Date.parse(value);
+        return isNaN(time) ? 0 : time;
+    },
+
+    getJson: function(url) {
+        let response = fetch(url, {
+            headers: {
+                "Accept": "application/json"
             }
-            
-            let s = item.attributes.status;
-            if (s === "ongoing") manga.status = 1;
-            else if (s === "completed") manga.status = 2;
-            else if (s === "hiatus") manga.status = 3;
-            else if (s === "cancelled") manga.status = 4;
-            
-            if (item.attributes.tags) {
-                for (let i = 0; i < item.attributes.tags.length; i++) {
-                    let tag = item.attributes.tags[i];
-                    if (tag.attributes && tag.attributes.name && tag.attributes.name.en) {
-                        manga.genre.push(tag.attributes.name.en);
-                    }
+        });
+        if (response.status < 200 || response.status >= 300) return null;
+        return JSON.parse(response.body);
+    },
+
+    toQuery: function(params) {
+        let parts = [];
+        for (let key in params) {
+            let value = params[key];
+            if (value === undefined || value === null || value === "") continue;
+            if (Array.isArray(value)) {
+                for (let i = 0; i < value.length; i++) {
+                    parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(value[i]));
                 }
+            } else {
+                parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(value));
             }
         }
-        
-        if (item.relationships) {
-            let coverArt = item.relationships.find(x => x.type === "cover_art");
-            if (coverArt && coverArt.attributes && coverArt.attributes.fileName) {
-                manga.thumbnailUrl = `https://uploads.mangadex.org/covers/${item.id}/${coverArt.attributes.fileName}.512.jpg`;
-            }
-            
-            let authors = item.relationships.filter(x => x.type === "author" || x.type === "artist");
-            let authorNames = [];
-            for (let i = 0; i < authors.length; i++) {
-                if (authors[i].attributes && authors[i].attributes.name) {
-                    if (!authorNames.includes(authors[i].attributes.name)) {
-                        authorNames.push(authors[i].attributes.name);
-                    }
-                }
-            }
-            manga.author = authorNames.join(", ");
-        }
-        
-        return manga;
-    },
-
-    getChapterList: function(mangaUrl) {
-        let id = mangaUrl.replace("/manga/", "").split("/")[0];
-        let offset = 0;
-        let limit = 500;
-        let allChapters = [];
-        let total = 0;
-        
-        do {
-            let reqUrl = `${this.apiUrl}/manga/${id}/feed?limit=${limit}&offset=${offset}${this.getTranslatedLangsParam()}&order[chapter]=desc&order[volume]=desc&includes[]=scanlation_group`;
-            let response = fetch(reqUrl);
-            if (response.status !== 200) break;
-            
-            let json = JSON.parse(response.body);
-            if (!json || json.result !== "ok" || !json.data) break;
-            
-            for (let i = 0; i < json.data.length; i++) {
-                let item = json.data[i];
-                let chapter = {
-                    name: "",
-                    url: `/chapter/${item.id}`,
-                    chapterNumber: 0,
-                    volumeNumber: "",
-                    scanlator: "",
-                    dateUpload: 0
-                };
-                
-                if (item.attributes) {
-                    let vol = item.attributes.volume ? `Vol.${item.attributes.volume} ` : "";
-                    let ch = item.attributes.chapter ? `Ch.${item.attributes.chapter} ` : "";
-                    let title = item.attributes.title ? `- ${item.attributes.title}` : "";
-                    
-                    if (!vol && !ch && !title) {
-                        chapter.name = "Oneshot";
-                    } else {
-                        chapter.name = `${vol}${ch}${title}`.trim();
-                        // Prepend language to title
-                        let lang = item.attributes.translatedLanguage;
-                        if (lang) {
-                            chapter.name = `[${lang.toUpperCase()}] ${chapter.name}`;
-                        }
-                    }
-                    
-                    if (item.attributes.chapter) {
-                        chapter.chapterNumber = parseFloat(item.attributes.chapter);
-                    }
-                    if (item.attributes.publishAt) {
-                        chapter.dateUpload = Date.parse(item.attributes.publishAt);
-                    }
-                }
-                
-                if (item.relationships) {
-                    let scanlators = item.relationships.filter(x => x.type === "scanlation_group");
-                    let scNames = [];
-                    for (let j = 0; j < scanlators.length; j++) {
-                        if (scanlators[j].attributes && scanlators[j].attributes.name) {
-                            scNames.push(scanlators[j].attributes.name);
-                        }
-                    }
-                    chapter.scanlator = scNames.join(", ");
-                }
-                
-                allChapters.push(chapter);
-            }
-            
-            total = json.total || 0;
-            offset += limit;
-        } while (offset < total);
-        
-        return allChapters;
-    },
-
-    getPageList: function(chapterUrl) {
-        let id = chapterUrl.replace("/chapter/", "").split("/")[0];
-        let reqUrl = `${this.apiUrl}/at-home/server/${id}`;
-        
-        let response = fetch(reqUrl);
-        if (response.status !== 200) return [];
-        
-        let json = JSON.parse(response.body);
-        if (!json || json.result !== "ok" || !json.chapter) return [];
-        
-        let pages = [];
-        let baseUrl = json.baseUrl;
-        let hash = json.chapter.hash;
-        let data = json.chapter.data;
-        
-        for (let i = 0; i < data.length; i++) {
-            pages.push(`${baseUrl}/data/${hash}/${data[i]}`);
-        }
-        
-        return pages;
+        return parts.length > 0 ? "?" + parts.join("&") : "";
     }
 };
