@@ -2,7 +2,7 @@ var source = {
     name: "WeebCentral",
     baseUrl: "https://weebcentral.com",
     language: "en",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "WeebCentral English extension implemented in JavaScript using WeebCentral lightweight endpoints",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -13,6 +13,10 @@ var source = {
     pageSize: 14,
     fetchLimit: 32,
     knownTotalItems: 10450,
+    knownStatusTotals: {
+        Ongoing: 4640,
+        Complete: 5671
+    },
 
     getPopularManga: function(page) {
         return this.getSearchPage(page, "", {
@@ -338,11 +342,11 @@ var source = {
         query = (query || "").trim();
         if (query !== "") return false;
         if (!extraParams) return false;
-        return !extraParams.included_status;
+        return !extraParams.included_status || this.knownStatusTotals[extraParams.included_status] > 0;
     },
 
     resolveKnownTotalItems: function(extraParams) {
-        let known = this.knownTotalItems;
+        let known = this.getKnownTotalItems(extraParams);
         let countAtKnown = this.countSearchItemsAtOffset(known, extraParams);
         if (countAtKnown > 0) {
             let low = known;
@@ -365,6 +369,13 @@ var source = {
         let low = 0;
         let high = known;
         return this.findFirstEmptyOffset(low, high, extraParams);
+    },
+
+    getKnownTotalItems: function(extraParams) {
+        if (extraParams && extraParams.included_status && this.knownStatusTotals[extraParams.included_status] > 0) {
+            return this.knownStatusTotals[extraParams.included_status];
+        }
+        return this.knownTotalItems;
     },
 
     findFirstEmptyOffset: function(low, high, extraParams) {
