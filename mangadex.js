@@ -17,7 +17,7 @@ var source = {
 
     getPopularManga: function(page) {
         return this.getMangaPage(page, {
-            "order[latestUploadedChapter]": "desc"
+            "order[followedCount]": "desc"
         });
     },
 
