@@ -4,8 +4,9 @@ var source = {
     apiUrl: "https://api.mangadex.org",
     uploadsUrl: "https://uploads.mangadex.org",
     language: "en",
-    version: "1.0.0",
-    description: "MangaDex English extension implemented in JavaScript using the official MangaDex API",
+    selectedLanguage: "en",
+    version: "1.0.1",
+    description: "MangaDex extension implemented in JavaScript using the official MangaDex API",
     author: "DesktopKomik",
     iconBackground: "#ff6740",
     iconForeground: "#ffffff",
@@ -42,7 +43,7 @@ var source = {
         let params = {
             limit: this.pageSize,
             offset: (currentPage - 1) * this.pageSize,
-            "availableTranslatedLanguage[]": "en",
+            "availableTranslatedLanguage[]": this.getSelectedLanguage(),
             "includes[]": "cover_art",
             "contentRating[]": ["safe", "suggestive", "erotica"]
         };
@@ -102,7 +103,7 @@ var source = {
             let json = this.getJson(this.apiUrl + "/manga/" + encodeURIComponent(mangaId) + "/feed" + this.toQuery({
                 limit: this.chapterPageSize,
                 offset: offset,
-                "translatedLanguage[]": "en",
+                "translatedLanguage[]": this.getSelectedLanguage(),
                 "contentRating[]": ["safe", "suggestive", "erotica"],
                 "includeFutureUpdates": "0",
                 "order[chapter]": "desc",
@@ -205,7 +206,13 @@ var source = {
 
     pickLocalized: function(values) {
         if (!values) return "";
-        return values.en || values["en-us"] || values.ja || values["ja-ro"] || values.ko || values["ko-ro"] || values.zh || values["zh-ro"] || this.firstValue(values);
+        let language = this.getSelectedLanguage();
+        return values[language] || values.en || values["en-us"] || values.ja || values["ja-ro"] || values.ko || values["ko-ro"] || values.zh || values["zh-ro"] || this.firstValue(values);
+    },
+
+    getSelectedLanguage: function() {
+        let language = (this.selectedLanguage || "en").toLowerCase();
+        return language === "id" ? "id" : "en";
     },
 
     getBestAltTitle: function(altTitles) {
