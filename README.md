@@ -9,6 +9,7 @@ Repository: [ArisaAkiyama/extension-yomic](https://github.com/ArisaAkiyama/exten
 | Extension | File | Language | Version | Description |
 |-----------|------|----------|---------|-------------|
 | **Aarlas** | `aarlas.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari Aarlas |
+| **KomikCast** | `komikcast.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari KomikCast |
 | **Komiku** | `komiku.js` | ID | Latest | Baca komik Bahasa Indonesia dari Komiku |
 | **Mangabat** | `mangabat.js` | EN | 1.0.0 | Read English manga from Mangabat |
 | **MangaDex** | `mangadex.js` | EN/ID | 1.0.2 | Read manga from MangaDex with English and Indonesian language switching |
