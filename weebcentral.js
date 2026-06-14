@@ -2,7 +2,7 @@ var source = {
     name: "WeebCentral",
     baseUrl: "https://weebcentral.com",
     language: "en",
-    version: "1.0.2",
+    version: "1.0.3",
     description: "WeebCentral English extension implemented in JavaScript using WeebCentral lightweight endpoints",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -102,11 +102,7 @@ var source = {
             if (items.length >= this.pageSize) break;
         }
 
-        let hasNext = html.indexOf("View More Results") !== -1 || html.indexOf("hx-get=") !== -1;
-        let totalPages = hasNext ? currentPage + 1 : currentPage;
-        if (this.canUseKnownTotal(query, extraParams)) {
-            totalPages = Math.max(currentPage, Math.ceil(this.resolveKnownTotalItems(extraParams) / this.pageSize));
-        }
+        let totalPages = this.getTotalPages(query, extraParams, currentPage, html);
 
         return {
             items: items,
@@ -338,37 +334,17 @@ var source = {
         return isNaN(time) ? 0 : time;
     },
 
-    canUseKnownTotal: function(query, extraParams) {
+    getTotalPages: function(query, extraParams, currentPage, html) {
         query = (query || "").trim();
-        if (query !== "") return false;
-        if (!extraParams) return false;
-        return !extraParams.included_status || this.knownStatusTotals[extraParams.included_status] > 0;
-    },
-
-    resolveKnownTotalItems: function(extraParams) {
-        let known = this.getKnownTotalItems(extraParams);
-        let countAtKnown = this.countSearchItemsAtOffset(known, extraParams);
-        if (countAtKnown > 0) {
-            let low = known;
-            let high = known + this.fetchLimit;
-            let guard = 0;
-
-            while (this.countSearchItemsAtOffset(high, extraParams) > 0 && guard < 20) {
-                low = high;
-                high += this.fetchLimit;
-                guard++;
+        if (query === "" && extraParams) {
+            let known = this.getKnownTotalItems(extraParams);
+            if (known > 0) {
+                return Math.max(currentPage, Math.ceil(known / this.pageSize));
             }
-
-            return this.findFirstEmptyOffset(low, high, extraParams);
         }
 
-        if (known > 0 && this.countSearchItemsAtOffset(known - 1, extraParams) > 0) {
-            return known;
-        }
-
-        let low = 0;
-        let high = known;
-        return this.findFirstEmptyOffset(low, high, extraParams);
+        let hasNext = html.indexOf("View More Results") !== -1 || html.indexOf("hx-get=") !== -1;
+        return hasNext ? currentPage + 1 : currentPage;
     },
 
     getKnownTotalItems: function(extraParams) {
@@ -376,48 +352,6 @@ var source = {
             return this.knownStatusTotals[extraParams.included_status];
         }
         return this.knownTotalItems;
-    },
-
-    findFirstEmptyOffset: function(low, high, extraParams) {
-        while (low + 1 < high) {
-            let mid = Math.floor((low + high) / 2);
-            if (this.countSearchItemsAtOffset(mid, extraParams) > 0) {
-                low = mid;
-            } else {
-                high = mid;
-            }
-        }
-        return high;
-    },
-
-    countSearchItemsAtOffset: function(offset, extraParams) {
-        let params = {
-            text: "",
-            limit: this.fetchLimit,
-            offset: offset,
-            display_mode: "Full Display",
-            official: "Any",
-            anime: "Any",
-            adult: "Any"
-        };
-
-        for (let key in extraParams) {
-            params[key] = extraParams[key];
-        }
-
-        let html = this.getHtml(this.baseUrl + "/search/data" + this.toQuery(params));
-        if (!html) return 0;
-        let ids = {};
-        let count = 0;
-        let regex = /href=["']https:\/\/weebcentral\.com\/series\/([^"'/]+)\//g;
-        let match;
-        while ((match = regex.exec(html)) !== null) {
-            if (!ids[match[1]]) {
-                ids[match[1]] = true;
-                count++;
-            }
-        }
-        return count;
     },
 
     getHtml: function(url) {
