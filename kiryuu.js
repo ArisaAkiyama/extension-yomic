@@ -7,6 +7,7 @@ var source = {
     version: "1.0.0",
     description: "Baca komik Bahasa Indonesia dari Kiryuu",
     author: "DesktopKomik",
+    iconUrl: "https://v6.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
     iconBackground: "#3b0764",
     iconForeground: "#f5d0fe",
     isNsfw: true,
