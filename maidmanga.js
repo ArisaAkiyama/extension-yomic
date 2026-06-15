@@ -2,7 +2,7 @@ var source = {
     name: "MaidManga",
     baseUrl: "https://www.maid.my.id",
     language: "id",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "MaidManga Indonesian extension implemented in JavaScript using ZManga/WordPress pages",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -107,6 +107,9 @@ var source = {
         let html = this.getHtml(absUrl);
         if (!html || this.isBlockedHtml(html)) return [];
 
+        let regexChapters = this.extractChaptersFromHtml(html);
+        if (regexChapters.length > 0) return regexChapters;
+
         let document = Html.parse(html, absUrl);
         let links = document.querySelectorAll(".series-chapterlist a[href], ul.series-chapterlist a[href], .chapters a[href]");
         let chapters = [];
@@ -129,10 +132,6 @@ var source = {
                 url: this.relativeUrl(href),
                 dateUpload: this.parseDate(dateText)
             });
-        }
-
-        if (chapters.length === 0) {
-            chapters = this.extractChaptersFromHtml(html);
         }
 
         return chapters;
@@ -240,15 +239,16 @@ var source = {
 
         let chapters = [];
         let seen = {};
-        let re = /<a\b[^>]*href=["']([^"']+)["'][^>]*title=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let re = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
         let match;
         while ((match = re.exec(block)) !== null) {
-            let href = this.htmlDecode(match[1]);
+            let attrs = match[1] || "";
+            let inner = match[2] || "";
+            let href = this.htmlDecode(this.matchFirst(attrs, /href=["']([^"']+)["']/i));
             if (!href || seen[href]) continue;
             seen[href] = true;
 
-            let title = this.htmlDecode(match[2]);
-            let inner = match[3] || "";
+            let title = this.htmlDecode(this.matchFirst(attrs, /title=["']([^"']*)["']/i));
             let dateText = this.stripHtml(this.matchFirst(inner, /<span[^>]+class=["'][^"']*date[^"']*["'][^>]*>([\s\S]*?)<\/span>/i));
             let name = this.stripHtml(inner.replace(/<span[^>]+class=["'][^"']*date[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, " "));
             if (!/^chapter\b/i.test(name)) {
