@@ -2,7 +2,7 @@ var source = {
     name: "MaidManga",
     baseUrl: "https://www.maid.my.id",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "MaidManga Indonesian extension implemented in JavaScript using ZManga/WordPress pages",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -76,7 +76,11 @@ var source = {
         let infoHtml = this.outerHtmlOf(document, ".series-info, .series-infoz, .series-infobox");
         let title = this.textOf(document, ".series-titlex h2, .series-title h2, h1, h2") || this.titleFromUrl(absUrl);
         let thumbnailUrl = this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "src");
-        let status = this.mapStatus(this.textOf(document, ".series-infoz .status, .status") || this.extractInfoValue(infoHtml, "Status"));
+        let status = this.mapStatus(
+            this.textOf(document, ".series-infoz.block .status, .series-infoz .status, .status") ||
+            this.extractDetailStatus(html) ||
+            this.extractInfoValue(infoHtml, "Status")
+        );
         let author = this.extractInfoValue(infoHtml, "Author");
         let genre = this.extractGenreLinks(document);
         let description = this.textOf(document, ".series-synops, .series-synopsis, .entry-content");
@@ -125,6 +129,10 @@ var source = {
                 url: this.relativeUrl(href),
                 dateUpload: this.parseDate(dateText)
             });
+        }
+
+        if (chapters.length === 0) {
+            chapters = this.extractChaptersFromHtml(html);
         }
 
         return chapters;
@@ -224,6 +232,45 @@ var source = {
             genres.push(value);
         }
         return genres;
+    },
+
+    extractChaptersFromHtml: function(html) {
+        let block = this.matchFirst(html, /<ul[^>]+class=["'][^"']*series-chapterlist[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i);
+        if (!block) block = html || "";
+
+        let chapters = [];
+        let seen = {};
+        let re = /<a\b[^>]*href=["']([^"']+)["'][^>]*title=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let match;
+        while ((match = re.exec(block)) !== null) {
+            let href = this.htmlDecode(match[1]);
+            if (!href || seen[href]) continue;
+            seen[href] = true;
+
+            let title = this.htmlDecode(match[2]);
+            let inner = match[3] || "";
+            let dateText = this.stripHtml(this.matchFirst(inner, /<span[^>]+class=["'][^"']*date[^"']*["'][^>]*>([\s\S]*?)<\/span>/i));
+            let name = this.stripHtml(inner.replace(/<span[^>]+class=["'][^"']*date[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, " "));
+            if (!/^chapter\b/i.test(name)) {
+                let nameMatch = this.matchFirst(inner, /Chapter\s*[^<]+/i);
+                name = this.cleanText(nameMatch);
+            }
+            if (!name) {
+                name = this.cleanChapterTitle(title);
+            }
+
+            chapters.push({
+                name: name,
+                url: this.relativeUrl(href),
+                dateUpload: this.parseDate(dateText)
+            });
+        }
+
+        return chapters;
+    },
+
+    extractDetailStatus: function(html) {
+        return this.stripHtml(this.matchFirst(html, /<span[^>]+class=["'][^"']*\bstatus\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i));
     },
 
     extractTotalPages: function(document, html, currentPage) {
@@ -381,6 +428,13 @@ var source = {
         line = this.cleanText(line);
         if (!line) return text;
         return text ? text + "\n\n" + line : line;
+    },
+
+    cleanChapterTitle: function(title) {
+        title = this.cleanText(title)
+            .replace(/\s*bahasa\s+indonesia\s*$/i, "")
+            .replace(/^.+?\s+(Chapter\s+)/i, "$1");
+        return title;
     },
 
     titleFromUrl: function(url) {
