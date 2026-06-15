@@ -2,7 +2,7 @@ var source = {
     name: "MaidManga",
     baseUrl: "https://www.maid.my.id",
     language: "id",
-    version: "1.0.2",
+    version: "1.0.3",
     description: "MaidManga Indonesian extension implemented in JavaScript using ZManga/WordPress pages",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -368,13 +368,7 @@ var source = {
     },
 
     getHtml: function(url) {
-        let response = fetch(url, {
-            headers: {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-                "Referer": this.baseUrl + "/"
-            }
-        });
+        let response = fetch(url);
         if (response.status < 200 || response.status >= 300) return "";
         return response.body;
     },
