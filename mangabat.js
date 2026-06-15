@@ -2,7 +2,7 @@ var source = {
     name: "Mangabat",
     baseUrl: "https://www.mangabats.com",
     language: "en",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Mangabat English extension implemented in JavaScript using MangaBox endpoints",
     author: "DesktopKomik",
     iconBackground: "#111827",
@@ -13,7 +13,7 @@ var source = {
     chapterPageSize: 1000,
 
     getPopularManga: function(page) {
-        return this.getMangaPage("/manga-list/hot-manga?page=" + Math.max(1, page || 1));
+        return this.getMangaPage("/genre/all?filter=7&page=" + Math.max(1, page || 1));
     },
 
     getLatestUpdates: function(page) {
@@ -30,10 +30,10 @@ var source = {
     getMangaList: function(page, status) {
         page = Math.max(1, page || 1);
         if (status === 1) {
-            return this.getMangaPage("/genre?filter=9&page=" + page);
+            return this.getMangaPage("/genre/all?filter=9&page=" + page);
         }
         if (status === 2) {
-            return this.getMangaPage("/genre?filter=8&page=" + page);
+            return this.getMangaPage("/genre/all?filter=8&page=" + page);
         }
         return this.getPopularManga(page);
     },
@@ -69,7 +69,7 @@ var source = {
 
         return {
             items: items,
-            totalPages: this.hasNextPage(document, html) ? this.currentPageFromPath(path) + 1 : this.currentPageFromPath(path)
+            totalPages: this.extractTotalPages(html, this.currentPageFromPath(path))
         };
     },
 
@@ -184,6 +184,17 @@ var source = {
     hasNextPage: function(document, html) {
         if (document.querySelector("div.group_page, div.group-page a:not([href]) + a, a.page_select + a, a.page-select + a")) return true;
         return /page[-_ ]?(?:select|current)[\s\S]{0,120}<a\b/i.test(html) || /Next/i.test(html);
+    },
+
+    extractTotalPages: function(html, currentPage) {
+        let maxPage = Math.max(1, currentPage || 1);
+        let re = /[?&](?:amp;)?page=(\d+)/gi;
+        let match;
+        while ((match = re.exec(html || "")) !== null) {
+            let page = parseInt(match[1]);
+            if (!isNaN(page) && page > maxPage) maxPage = page;
+        }
+        return maxPage;
     },
 
     extractCardStatus: function(html) {
