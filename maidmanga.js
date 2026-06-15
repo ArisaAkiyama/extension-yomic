@@ -2,7 +2,7 @@ var source = {
     name: "MaidManga",
     baseUrl: "https://www.maid.my.id",
     language: "id",
-    version: "1.0.4",
+    version: "1.0.5",
     description: "MaidManga Indonesian extension implemented in JavaScript using ZManga/WordPress pages",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -404,7 +404,7 @@ var source = {
     },
 
     isBlockedHtml: function(html) {
-        return /cloudflare|captcha|just a moment|access denied/i.test(html || "");
+        return /just a moment|checking your browser|cloudflare ray id|access denied|internet-positif/i.test(html || "");
     },
 
     absoluteUrl: function(path) {
