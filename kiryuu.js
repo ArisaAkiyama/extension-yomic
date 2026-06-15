@@ -4,7 +4,7 @@ var source = {
     baseUrl: "https://v6.kiryuu.to",
     apiUrl: "https://v6.kiryuu.to/wp-json/wp/v2",
     language: "id",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "Baca komik Bahasa Indonesia dari Kiryuu",
     author: "DesktopKomik",
     iconUrl: "https://v6.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
@@ -14,13 +14,14 @@ var source = {
     isHasMorePages: true,
 
     pageSize: 24,
+    unclassifiedMangaCount: 8,
 
     getPopularManga: function(page) {
-        return this.getRestMangaPage(page, "");
+        return this.getRestMangaPage(page, "", this.resolveTotalItems(0));
     },
 
     getLatestUpdates: function(page) {
-        return this.getRestMangaPage(page, "&orderby=modified");
+        return this.getRestMangaPage(page, "&orderby=modified", this.resolveTotalItems(0));
     },
 
     getSearchManga: function(query, page) {
@@ -29,7 +30,17 @@ var source = {
         return this.getRestMangaPage(page, "&search=" + encodeURIComponent(query));
     },
 
-    getRestMangaPage: function(page, extraQuery) {
+    getMangaList: function(page, status) {
+        if (status === 1) {
+            return this.getRestMangaPage(page, "&manga-status=8684", this.resolveTotalItems(1));
+        }
+        if (status === 2) {
+            return this.getRestMangaPage(page, "&manga-status=8680", this.resolveTotalItems(2));
+        }
+        return this.getPopularManga(page);
+    },
+
+    getRestMangaPage: function(page, extraQuery, totalItems) {
         page = Math.max(1, page || 1);
         let url = this.apiUrl + "/manga?per_page=" + this.pageSize + "&page=" + page + "&_embed=wp:featuredmedia" + (extraQuery || "");
         let data = this.getJson(url);
@@ -50,7 +61,7 @@ var source = {
 
         return {
             items: items,
-            totalPages: items.length >= this.pageSize ? page + 1 : page
+            totalPages: totalItems ? Math.max(1, Math.ceil(totalItems / this.pageSize)) : (items.length >= this.pageSize ? page + 1 : page)
         };
     },
 
@@ -157,6 +168,30 @@ var source = {
             out.push(chapter);
         }
         return out;
+    },
+
+    resolveTotalItems: function(status) {
+        let terms = this.getJson(this.apiUrl + "/manga-status?per_page=100&_fields=id,count,slug");
+        if (!terms || !terms.length) {
+            if (status === 1) return 8033;
+            if (status === 2) return 677;
+            return 8750;
+        }
+
+        let total = 0;
+        let ongoing = 0;
+        let completed = 0;
+        for (let i = 0; i < terms.length; i++) {
+            let count = terms[i].count || 0;
+            let slug = terms[i].slug || "";
+            total += count;
+            if (slug === "ongoing") ongoing = count;
+            if (slug === "completed") completed = count;
+        }
+
+        if (status === 1) return ongoing;
+        if (status === 2) return completed;
+        return total + this.unclassifiedMangaCount;
     },
 
     extractMangaId: function(mangaUrl) {
