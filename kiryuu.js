@@ -4,7 +4,7 @@ var source = {
     baseUrl: "https://v6.kiryuu.to",
     apiUrl: "https://v6.kiryuu.to/wp-json/wp/v2",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Baca komik Bahasa Indonesia dari Kiryuu",
     author: "DesktopKomik",
     iconUrl: "https://v6.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
@@ -135,7 +135,7 @@ var source = {
 
         while ((match = re.exec(html || "")) !== null) {
             let href = this.decodeHtml(match[1]).trim();
-            let name = this.stripHtml(match[2]) || this.titleFromUrl(href);
+            let name = this.extractChapterName(match[2]) || this.titleFromUrl(href);
             if (!href || !name) continue;
             chapters.push({
                 name: name,
@@ -207,11 +207,18 @@ var source = {
         return this.matchFirst(block, /<time[^>]+datetime=["']([^"']+)["']/i);
     },
 
+    extractChapterName: function(anchorHtml) {
+        let name = this.stripHtml(this.matchFirst(anchorHtml, /<span\b[^>]*>([\s\S]*?)<\/span>/i));
+        if (!name) name = this.stripHtml(anchorHtml);
+        return name.replace(/\s+(?:\d+\s+)?(?:second|minute|hour|day|week|month|year)s?\s+ago\s*$/i, "").trim();
+    },
+
     isReaderImage: function(url) {
         url = (url || "").toLowerCase();
         if (url.indexOf("logo-kiryuu") !== -1 || url.indexOf("cropped-logo") !== -1) return false;
-        if (url.indexOf("/wp-content/uploads/") !== -1 && url.indexOf("cdn.uqni.net") === -1) return false;
-        return url.indexOf("cdn.uqni.net") !== -1 || url.indexOf("/uploads/") !== -1;
+        if (url.indexOf("banner-kiryuu") !== -1 || url.indexOf("kiryuu.io") !== -1) return false;
+        if (url.indexOf("/wp-content/uploads/") !== -1 && url.indexOf("cdn.uqni.net") === -1 && url.indexOf("yuucdn.com") === -1) return false;
+        return url.indexOf("cdn.uqni.net") !== -1 || url.indexOf("yuucdn.com") !== -1 || url.indexOf("/uploads/") !== -1;
     },
 
     extractMangaSlug: function(url) {
