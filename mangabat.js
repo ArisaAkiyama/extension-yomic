@@ -2,7 +2,7 @@ var source = {
     name: "Mangabat",
     baseUrl: "https://www.mangabats.com",
     language: "en",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "Mangabat English extension implemented in JavaScript using MangaBox endpoints",
     author: "DesktopKomik",
     iconBackground: "#111827",
@@ -30,15 +30,15 @@ var source = {
     getMangaList: function(page, status) {
         page = Math.max(1, page || 1);
         if (status === 1) {
-            return this.getMangaPage("/genre/all?filter=9&page=" + page);
+            return this.getMangaPage("/genre/all?filter=9&page=" + page, 1);
         }
         if (status === 2) {
-            return this.getMangaPage("/genre/all?filter=8&page=" + page);
+            return this.getMangaPage("/genre/all?filter=8&page=" + page, 2);
         }
         return this.getPopularManga(page);
     },
 
-    getMangaPage: function(path) {
+    getMangaPage: function(path, forcedStatus) {
         let url = this.absoluteUrl(path);
         let html = this.getHtml(url);
         if (!html || this.isBlockedHtml(html)) return { items: [], totalPages: 1 };
@@ -62,7 +62,7 @@ var source = {
                 title: this.cleanText(link.text()) || this.titleFromUrl(href),
                 url: this.relativeUrl(href),
                 thumbnailUrl: img ? img.absUrl("src") : "",
-                status: this.extractCardStatus(card.outerHtml()),
+                status: forcedStatus || this.extractCardStatus(card.outerHtml()),
                 source: this.id
             });
         }
@@ -79,7 +79,7 @@ var source = {
         if (!html || this.isBlockedHtml(html)) return {};
 
         let document = Html.parse(html, absUrl);
-        let info = document.querySelector("div.manga-info-top, div.panel-story-info");
+        let info = document.querySelector("div.comic-info-section, div.manga-info-top, div.panel-story-info");
         let title = "";
         let thumbnailUrl = "";
         let author = "";
@@ -89,7 +89,7 @@ var source = {
         if (info) {
             title = this.textOf(info, "h1, h2");
             thumbnailUrl = this.attrAbsOf(info, "div.manga-info-pic img, span.info-image img, img", "src");
-            author = this.extractInfoLinks(info.outerHtml(), "author").join(", ");
+            author = this.extractInfoValue(info.outerHtml(), "author") || this.extractInfoLinks(info.outerHtml(), "author").join(", ");
             status = this.mapStatus(this.extractInfoValue(info.outerHtml(), "status"));
             genre = this.extractInfoLinks(info.outerHtml(), "genres");
         }
@@ -99,6 +99,12 @@ var source = {
         }
         if (!thumbnailUrl) {
             thumbnailUrl = this.attrAbsOf(document, "div.manga-info-pic img, span.info-image img, img", "src");
+        }
+        if (status === 0) {
+            status = this.mapStatus(this.extractInfoValue(html, "status"));
+        }
+        if (genre.length === 0) {
+            genre = this.extractInfoLinks(html, "genres");
         }
 
         let descriptionNode = document.querySelector("div#noidungm, div#panel-story-info-description, div#contentBox");
@@ -204,12 +210,15 @@ var source = {
     extractInfoValue: function(html, key) {
         let re1 = new RegExp("<li[^>]*>\\s*[^<]*" + key + "[^<]*[\\s\\S]*?<a[^>]*>([\\s\\S]*?)<\\/a>", "i");
         let re2 = new RegExp("<td[^>]*>\\s*[^<]*" + key + "[^<]*<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>", "i");
-        return this.stripHtml(this.matchFirst(html, re1) || this.matchFirst(html, re2));
+        let re3 = new RegExp("<p[^>]*>\\s*" + key + "\\(s\\)\\s*:?\\s*<\\/p>\\s*([\\s\\S]*?)\\s*<p[^>]*>", "i");
+        let re4 = new RegExp("<p[^>]*>\\s*" + key + "\\s*:?\\s*<\\/p>\\s*<p[^>]*>([\\s\\S]*?)<\\/p>", "i");
+        return this.stripHtml(this.matchFirst(html, re1) || this.matchFirst(html, re2) || this.matchFirst(html, re3) || this.matchFirst(html, re4));
     },
 
     extractInfoLinks: function(html, key) {
         let block = this.matchFirst(html, new RegExp("<li[^>]*>\\s*[^<]*" + key + "[^<]*([\\s\\S]*?)<\\/li>", "i")) ||
-            this.matchFirst(html, new RegExp("<td[^>]*>\\s*[^<]*" + key + "[^<]*<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>", "i"));
+            this.matchFirst(html, new RegExp("<td[^>]*>\\s*[^<]*" + key + "[^<]*<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>", "i")) ||
+            this.matchFirst(html, /<div[^>]+class=["'][^"']*genre-list[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
         let values = [];
         let re = /<a\b[^>]*>([\s\S]*?)<\/a>/gi;
         let match;
