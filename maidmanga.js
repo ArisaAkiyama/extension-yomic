@@ -2,7 +2,7 @@ var source = {
     name: "MaidManga",
     baseUrl: "https://www.maid.my.id",
     language: "id",
-    version: "1.0.3",
+    version: "1.0.4",
     description: "MaidManga Indonesian extension implemented in JavaScript using ZManga/WordPress pages",
     author: "DesktopKomik",
     iconBackground: "#1f2937",
@@ -74,18 +74,24 @@ var source = {
 
         let document = Html.parse(html, absUrl);
         let infoHtml = this.outerHtmlOf(document, ".series-info, .series-infoz, .series-infobox");
-        let title = this.textOf(document, ".series-titlex h2, .series-title h2, h1, h2") || this.titleFromUrl(absUrl);
-        let thumbnailUrl = this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "src");
+        let title = this.textOf(document, ".series-titlex h2, .series-title h2, h1, h2")
+            || this.extractMetaContent(html, "og:title").replace(/\s+Bahasa\s+Indonesia.*$/i, "")
+            || this.titleFromUrl(absUrl);
+        let thumbnailUrl = this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "src")
+            || this.extractMetaContent(html, "og:image");
         let status = this.mapStatus(
             this.textOf(document, ".series-infoz.block .status, .series-infoz .status, .status") ||
             this.extractDetailStatus(html) ||
+            this.extractMetaContent(html, "description") ||
             this.extractInfoValue(infoHtml, "Status")
         );
-        let author = this.extractInfoValue(infoHtml, "Author");
+        let author = this.extractInfoValue(infoHtml, "Author") || this.extractRawInfoValue(html, "Author");
         let genre = this.extractGenreLinks(document);
-        let description = this.textOf(document, ".series-synops, .series-synopsis, .entry-content");
-        let published = this.extractInfoValue(infoHtml, "Published");
-        let totalChapter = this.extractInfoValue(infoHtml, "Total Chapter");
+        let description = this.textOf(document, ".series-synops, .series-synopsis, .entry-content")
+            || this.extractSynopsisFromHtml(html)
+            || this.extractMetaContent(html, "description");
+        let published = this.extractInfoValue(infoHtml, "Published") || this.extractRawInfoValue(html, "Published");
+        let totalChapter = this.extractInfoValue(infoHtml, "Total Chapter") || this.extractRawInfoValue(html, "Total Chapter");
 
         if (published) description = this.appendLine(description, "Published: " + published);
         if (totalChapter) description = this.appendLine(description, "Total Chapter: " + totalChapter);
@@ -234,18 +240,19 @@ var source = {
     },
 
     extractChaptersFromHtml: function(html) {
+        html = html || "";
         let block = this.matchFirst(html, /<ul[^>]+class=["'][^"']*series-chapterlist[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i);
-        if (!block) block = html || "";
+        if (!block) block = html;
 
         let chapters = [];
         let seen = {};
-        let re = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+        let re = /<a\b([^>]*href=["'][^"']*(?:-chapter-|chapter-)[^"']*["'][^>]*)>([\s\S]{0,800}?)<\/a>/gi;
         let match;
         while ((match = re.exec(block)) !== null) {
             let attrs = match[1] || "";
             let inner = match[2] || "";
             let href = this.htmlDecode(this.matchFirst(attrs, /href=["']([^"']+)["']/i));
-            if (!href || seen[href]) continue;
+            if (!this.isChapterUrl(href) || seen[href]) continue;
             seen[href] = true;
 
             let title = this.htmlDecode(this.matchFirst(attrs, /title=["']([^"']*)["']/i));
@@ -258,6 +265,9 @@ var source = {
             if (!name) {
                 name = this.cleanChapterTitle(title);
             }
+            if (!name) {
+                name = this.chapterTitleFromUrl(href);
+            }
 
             chapters.push({
                 name: name,
@@ -269,8 +279,28 @@ var source = {
         return chapters;
     },
 
+    isChapterUrl: function(url) {
+        return /^https?:\/\/www\.maid\.my\.id\/[^?#]+(?:-chapter-|chapter-)[^?#]*\/?$/i.test(url || "");
+    },
+
     extractDetailStatus: function(html) {
         return this.stripHtml(this.matchFirst(html, /<span[^>]+class=["'][^"']*\bstatus\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i));
+    },
+
+    extractMetaContent: function(html, key) {
+        let escaped = this.escapeRegex(key);
+        let re = new RegExp("<meta\\b(?=[^>]*(?:property|name)=[\"']" + escaped + "[\"'])[^>]*content=[\"']([^\"']*)[\"'][^>]*>", "i");
+        return this.cleanText(this.htmlDecode(this.matchFirst(html || "", re)));
+    },
+
+    extractRawInfoValue: function(html, key) {
+        let escaped = this.escapeRegex(key);
+        let re = new RegExp("<li[^>]*>\\s*<b[^>]*>\\s*" + escaped + "\\s*<\\/b>\\s*<span[^>]*>([\\s\\S]*?)<\\/span>\\s*<\\/li>", "i");
+        return this.stripHtml(this.matchFirst(html || "", re));
+    },
+
+    extractSynopsisFromHtml: function(html) {
+        return this.stripHtml(this.matchFirst(html || "", /<div[^>]+class=["'][^"']*series-synops[^"']*["'][^>]*>([\s\S]*?)<\/div>/i));
     },
 
     extractTotalPages: function(document, html, currentPage) {
@@ -431,6 +461,14 @@ var source = {
         return title;
     },
 
+    chapterTitleFromUrl: function(url) {
+        let slug = (url || "").split("?")[0].replace(/\/$/, "");
+        slug = slug.substring(slug.lastIndexOf("/") + 1);
+        let match = slug.match(/chapter-([^/]+?)(?:-bahasa|-indo|-indonesia|$)/i);
+        if (!match) return this.titleFromUrl(url);
+        return "Chapter " + match[1].replace(/-/g, " ");
+    },
+
     titleFromUrl: function(url) {
         let clean = (url || "").split("?")[0].replace(/\/$/, "");
         let slug = clean.substring(clean.lastIndexOf("/") + 1);
@@ -440,6 +478,10 @@ var source = {
     matchFirst: function(text, regex) {
         let match = regex.exec(text || "");
         return match ? match[1] : "";
+    },
+
+    escapeRegex: function(value) {
+        return (value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     },
 
     stripHtml: function(value) {
