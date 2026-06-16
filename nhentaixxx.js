@@ -2,7 +2,7 @@ var source = {
     name: "NHentai.xxx",
     baseUrl: "https://nhentai.xxx",
     language: "en",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Read English doujinshi from NHentai.xxx",
     author: "DesktopKomik",
     iconUrl: "https://nhentai.xxx/favicon.ico",
@@ -23,6 +23,13 @@ var source = {
         query = (query || "").trim();
         if (!query) return this.getLatestUpdates(page);
         return this.getGalleryPage("/search/?key=" + encodeURIComponent(query) + "&page=" + Math.max(1, page || 1));
+    },
+
+    getMangaList: function(page, status) {
+        if (status === 1) {
+            return { items: [], totalPages: 1 };
+        }
+        return this.getLatestUpdates(page);
     },
 
     getGalleryPage: function(path) {
