@@ -2,8 +2,8 @@ var source = {
     name: "NHentai.xxx",
     baseUrl: "https://nhentai.xxx",
     language: "en",
-    version: "1.0.1",
-    description: "Read English doujinshi from NHentai.xxx",
+    version: "1.0.2",
+    description: "Read English and Japanese doujinshi from NHentai.xxx",
     author: "DesktopKomik",
     iconUrl: "https://nhentai.xxx/favicon.ico",
     iconBackground: "#111111",
@@ -12,17 +12,17 @@ var source = {
     isHasMorePages: true,
 
     getPopularManga: function(page) {
-        return this.getGalleryPage("/language/english/popular/?page=" + Math.max(1, page || 1));
+        return this.getDualLanguagePage(page, true);
     },
 
     getLatestUpdates: function(page) {
-        return this.getGalleryPage("/language/english/?page=" + Math.max(1, page || 1));
+        return this.getDualLanguagePage(page, false);
     },
 
     getSearchManga: function(query, page) {
         query = (query || "").trim();
         if (!query) return this.getLatestUpdates(page);
-        return this.getGalleryPage("/search/?key=" + encodeURIComponent(query) + "&page=" + Math.max(1, page || 1));
+        return this.getGalleryPage("/search/?key=" + encodeURIComponent(query) + "&page=" + Math.max(1, page || 1), ["1", "2"]);
     },
 
     getMangaList: function(page, status) {
@@ -32,7 +32,18 @@ var source = {
         return this.getLatestUpdates(page);
     },
 
-    getGalleryPage: function(path) {
+    getDualLanguagePage: function(page, popular) {
+        page = Math.max(1, page || 1);
+        let suffix = popular ? "popular/?page=" + page : "?page=" + page;
+        let english = this.getGalleryPage("/language/english/" + suffix);
+        let japanese = this.getGalleryPage("/language/japanese/" + suffix);
+        return {
+            items: this.interleaveItems(english.items, japanese.items),
+            totalPages: Math.max(english.totalPages || page, japanese.totalPages || page)
+        };
+    },
+
+    getGalleryPage: function(path, allowedLanguages) {
         let url = this.absoluteUrl(path);
         let html = this.getHtml(url);
         if (!html || this.isBlockedHtml(html)) return { items: [], totalPages: this.currentPageFromPath(path) };
@@ -44,6 +55,10 @@ var source = {
 
         for (let i = 0; i < cards.length; i++) {
             let card = cards[i];
+            if (allowedLanguages && allowedLanguages.length) {
+                let lang = card.attr("data-languages");
+                if (allowedLanguages.indexOf(lang) === -1) continue;
+            }
             let link = card.querySelector("a[href*='/g/']");
             if (!link) continue;
 
@@ -65,6 +80,16 @@ var source = {
             items: items,
             totalPages: this.extractTotalPages(html, this.currentPageFromPath(path))
         };
+    },
+
+    interleaveItems: function(first, second) {
+        let items = [];
+        let max = Math.max(first ? first.length : 0, second ? second.length : 0);
+        for (let i = 0; i < max; i++) {
+            if (first && i < first.length) items.push(first[i]);
+            if (second && i < second.length) items.push(second[i]);
+        }
+        return items;
     },
 
     getMangaDetails: function(url) {

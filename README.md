@@ -15,7 +15,7 @@ Repository: [ArisaAkiyama/extension-yomic](https://github.com/ArisaAkiyama/exten
 | **MaidManga** | `maidmanga.js` | ID | 1.0.5 | Baca komik Bahasa Indonesia dari MaidManga |
 | **Mangabat** | `mangabat.js` | EN | 1.0.2 | Read English manga from Mangabat |
 | **MangaDex** | `mangadex.js` | EN/ID | 1.0.2 | Read manga from MangaDex with English and Indonesian language switching |
-| **NHentai.xxx** | `nhentaixxx.js` | EN | 1.0.1 | Read English doujinshi from NHentai.xxx |
+| **NHentai.xxx** | `nhentaixxx.js` | EN/JP | 1.0.2 | Read English and Japanese doujinshi from NHentai.xxx |
 | **WeebCentral** | `weebcentral.js` | EN | 1.0.3 | Read English manga from WeebCentral |
 | **WestManga** | `westmanga.js` | ID | Latest | Baca komik Bahasa Indonesia dari WestManga |
 
