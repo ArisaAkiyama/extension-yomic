@@ -104,7 +104,6 @@ var source = {
 
         let manga = this.parseSeriesItem(json.data);
         let data = (json.data && json.data.data) || {};
-        let genres = this.extractGenres(data.genres);
         let description = data.synopsis || "";
         if (data.nativeTitle) {
             description = description ? description + "\n\nJudul lain: " + data.nativeTitle : "Judul lain: " + data.nativeTitle;
@@ -115,7 +114,6 @@ var source = {
 
         manga.author = data.author || "";
         manga.description = description;
-        manga.genre = genres;
         return manga;
     },
 
