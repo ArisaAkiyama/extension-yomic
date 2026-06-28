@@ -109,6 +109,9 @@ var source = {
         if (data.nativeTitle) {
             description = description ? description + "\n\nJudul lain: " + data.nativeTitle : "Judul lain: " + data.nativeTitle;
         }
+        if (data.rating) {
+            description = description + "\n\nRating: " + data.rating;
+        }
 
         manga.author = data.author || "";
         manga.description = description;
@@ -166,13 +169,17 @@ var source = {
     parseSeriesItem: function(item) {
         let data = (item && item.data) || {};
         let slug = data.slug || (item && item.id ? String(item.id) : "");
+        let description = data.synopsis || "";
+        if (data.rating) {
+            description = description + "\n\nRating: " + data.rating;
+        }
         return {
             title: data.title || data.nativeTitle || this.titleFromSlug(slug),
             url: "/series/" + slug,
             thumbnailUrl: data.coverImage || "",
             author: data.author || "",
             status: this.mapStatus(data.status),
-            description: data.synopsis || "",
+            description: description,
             genre: this.extractGenres(data.genres),
             source: this.id
         };
