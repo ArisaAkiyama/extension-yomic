@@ -173,14 +173,41 @@ var source = {
         if (data.rating) {
             description = description + "\n\nRating: " + data.rating;
         }
+
+        let title = data.title || data.nativeTitle || this.titleFromSlug(slug);
+        let formatFromTitle = null;
+        let match = title.match(/\s*(?:[\[\(]|-)\s*(Manga|Manhwa|Manhua|Webtoon|Mangatoon)\s*[\]\)]?$/i);
+        if (match) {
+            formatFromTitle = match[1].toLowerCase();
+            title = title.replace(/\s*(?:[\[\(]|-)\s*(Manga|Manhwa|Manhua|Webtoon|Mangatoon)\s*[\]\)]?$/i, "").trim();
+        }
+
+        let formatVal = formatFromTitle || data.format || "";
+        formatVal = formatVal.toLowerCase();
+        let formatLabel = "";
+        if (formatVal === "manga") {
+            formatLabel = "Manga";
+        } else if (formatVal === "manhwa") {
+            formatLabel = "Manhwa";
+        } else if (formatVal === "manhua") {
+            formatLabel = "Manhua";
+        } else if (formatVal === "webtoon" || formatVal === "mangatoon") {
+            formatLabel = "Mangatoon";
+        }
+
+        let genres = this.extractGenres(data.genres);
+        if (formatLabel && genres.indexOf(formatLabel) === -1) {
+            genres.unshift(formatLabel);
+        }
+
         return {
-            title: data.title || data.nativeTitle || this.titleFromSlug(slug),
+            title: title,
             url: "/series/" + slug,
             thumbnailUrl: data.coverImage || "",
             author: data.author || "",
             status: this.mapStatus(data.status),
             description: description,
-            genre: this.extractGenres(data.genres),
+            genre: genres,
             source: this.id
         };
     },

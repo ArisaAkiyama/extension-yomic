@@ -13,6 +13,7 @@ var source = {
     isNsfw: false,
     isHasMorePages: true,
     requiresProxy: true,
+    userAgent: "Yomic/1.0.3",
 
     pageSize: 14,
     chapterPageSize: 100,
