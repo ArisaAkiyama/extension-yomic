@@ -189,10 +189,17 @@ var source = {
         return null; // fallback to unauthenticated or cache
     },
 
-    getMangaDetails: function(manga) {
-        let url = this.baseUrl + manga.id;
+    getMangaDetails: function(url) {
+        let mangaId = url;
+        if (mangaId.startsWith(this.baseUrl)) {
+            mangaId = mangaId.substring(this.baseUrl.length);
+        }
+        if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
+        
         let html = this.getHtml(url);
         let data = this.extractNextData(html);
+        
+        let manga = { url: url, id: mangaId };
         
         if (!data || !data.props || !data.props.pageProps) {
             return manga;
