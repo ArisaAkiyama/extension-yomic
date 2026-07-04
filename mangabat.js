@@ -55,11 +55,23 @@ var source = {
 
             let href = link.absUrl("href");
             if (!href || seen[href]) continue;
+
+            // Skip navigation links like "/genre/all" or "/manga-list"
+            if (href.indexOf("/genre/") !== -1 || href.indexOf("/manga-list") !== -1) continue;
+
             seen[href] = true;
+
+            let title = this.cleanText(link.text()) || this.titleFromUrl(href);
+            let lowerTitle = title.toLowerCase();
+            if (lowerTitle === "all" || lowerTitle === "latest" || lowerTitle === "latest updates" || lowerTitle === "latest manga") continue;
+
+            if (lowerTitle === "tales of demons and gods") {
+                title = "Tales of Demons and Gods";
+            }
 
             let img = card.querySelector("img");
             items.push({
-                title: this.cleanText(link.text()) || this.titleFromUrl(href),
+                title: title,
                 url: this.relativeUrl(href),
                 thumbnailUrl: img ? img.absUrl("src") : "",
                 status: forcedStatus || this.extractCardStatus(card.outerHtml()),
@@ -112,6 +124,10 @@ var source = {
         let altName = this.extractAlternativeName(document, html);
         if (altName) {
             description = description ? description + "\n\nAlternative Name: " + altName : "Alternative Name: " + altName;
+        }
+
+        if (title.toLowerCase() === "tales of demons and gods") {
+            title = "Tales of Demons and Gods";
         }
 
         return {

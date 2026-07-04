@@ -570,16 +570,63 @@ var source = {
         return this.getApiMangaPage(page, params);
     },
 
-    getMangaList: function(page, status) {
-        if (status === 1 || status === 2 || status === 4) {
-            var params = "";
-            if (status === 1) {
-                params += "&status=Ongoing";
-            } else if (status === 2 || status === 4) {
-                params += "&status=Completed";
+    getMangaList: function(page, status, genre, type) {
+        var params = "";
+
+        // 1. Status Filter
+        if (status === 1) {
+            params += "&status=Ongoing";
+        } else if (status === 2 || status === 4) {
+            params += "&status=Completed";
+        }
+
+        // 2. Genre Filter
+        if (genre) {
+            var arr = [];
+            if (Array.isArray(genre)) {
+                arr = genre;
+            } else if (genre.length !== undefined && typeof genre !== 'string') {
+                for (var i = 0; i < genre.length; i++) {
+                    arr.push(genre[i]);
+                }
+            } else {
+                arr = [genre];
             }
+
+            for (var i = 0; i < arr.length; i++) {
+                var id = this.genreMap[arr[i]];
+                if (id !== undefined) {
+                    params += "&genre[]=" + id;
+                }
+            }
+        }
+
+        // 3. Format/Type Filter (mapped to Country code in WestManga API)
+        if (type) {
+            var arr = [];
+            if (Array.isArray(type)) {
+                arr = type;
+            } else if (type.length !== undefined && typeof type !== 'string') {
+                for (var i = 0; i < type.length; i++) {
+                    arr.push(type[i]);
+                }
+            } else {
+                arr = [type];
+            }
+
+            // Map standard types to country codes
+            for (var i = 0; i < arr.length; i++) {
+                var t = arr[i];
+                if (t === "Manga") params += "&country=JP";
+                else if (t === "Manhwa") params += "&country=KR";
+                else if (t === "Manhua") params += "&country=CN";
+            }
+        }
+
+        if (params !== "") {
             return this.getApiMangaPage(page, params);
         }
+
         return this.getPopularManga(page);
     },
 
@@ -762,5 +809,41 @@ var source = {
         if (!data || !data.images) return [];
         
         return data.images;
+    },
+
+    genres: [
+        "Action", "Adventure", "Comedy", "Demons", "Drama", "Ecchi", "Fantasy", "Gore", "Harem", "Horror",
+        "Isekai", "Magic", "Martial arts", "Monsters", "Reincarnation", "Romance", "School life", "Sci fi",
+        "Seinen", "Shounen", "Slice of Life", "Supernatural", "Tragedy"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua"
+    ],
+
+    genreMap: {
+        "Action": 13,
+        "Adventure": 4,
+        "Comedy": 5,
+        "Demons": 64,
+        "Drama": 6,
+        "Ecchi": 14,
+        "Fantasy": 7,
+        "Gore": 56,
+        "Harem": 17,
+        "Horror": 211,
+        "Isekai": 20,
+        "Magic": 65,
+        "Martial arts": 8,
+        "Monsters": 91,
+        "Reincarnation": 57,
+        "Romance": 15,
+        "School life": 9,
+        "Sci fi": 33,
+        "Seinen": 18,
+        "Shounen": 10,
+        "Slice of Life": 11,
+        "Supernatural": 34,
+        "Tragedy": 92
     }
 };

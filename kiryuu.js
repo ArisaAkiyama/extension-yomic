@@ -30,12 +30,69 @@ var source = {
         return this.getRestMangaPage(page, "&search=" + encodeURIComponent(query));
     },
 
-    getMangaList: function(page, status) {
+    getMangaList: function(page, status, genre, type) {
+        let extraQuery = "";
+        let isFiltered = false;
+
+        // 1. Status Filter
         if (status === 1) {
-            return this.getRestMangaPage(page, "&manga-status=8684", this.resolveTotalItems(1));
+            extraQuery += "&manga-status=8684";
+        } else if (status === 2) {
+            extraQuery += "&manga-status=8680";
         }
-        if (status === 2) {
-            return this.getRestMangaPage(page, "&manga-status=8680", this.resolveTotalItems(2));
+
+        // 2. Genre Filter
+        if (genre) {
+            let arr = [];
+            if (Array.isArray(genre)) {
+                arr = genre;
+            } else if (genre.length !== undefined && typeof genre !== 'string') {
+                for (let i = 0; i < genre.length; i++) {
+                    arr.push(genre[i]);
+                }
+            } else {
+                arr = [genre];
+            }
+            
+            let genreIds = [];
+            for (let i = 0; i < arr.length; i++) {
+                let id = this.genreMap[arr[i]];
+                if (id) genreIds.push(id);
+            }
+            if (genreIds.length > 0) {
+                extraQuery += "&genre=" + genreIds.join(",");
+                isFiltered = true;
+            }
+        }
+
+        // 3. Format/Type Filter
+        if (type) {
+            let arr = [];
+            if (Array.isArray(type)) {
+                arr = type;
+            } else if (type.length !== undefined && typeof type !== 'string') {
+                for (let i = 0; i < type.length; i++) {
+                    arr.push(type[i]);
+                }
+            } else {
+                arr = [type];
+            }
+
+            let typeIds = [];
+            for (let i = 0; i < arr.length; i++) {
+                let id = this.typeMap[arr[i]];
+                if (id) typeIds.push(id);
+            }
+            if (typeIds.length > 0) {
+                extraQuery += "&manga-type=" + typeIds.join(",");
+                isFiltered = true;
+            }
+        }
+
+        if (extraQuery) {
+            // Only pass totalItems estimate if we are only filtering by status and not doing complex multi-filtering
+            let totalItems = (!isFiltered && (status === 1 || status === 2)) ? this.resolveTotalItems(status) : 0;
+            return this.getRestMangaPage(page, extraQuery, totalItems);
         }
         return this.getPopularManga(page);
     },
@@ -371,5 +428,70 @@ var source = {
         });
         if (response.status < 200 || response.status >= 300) return null;
         return JSON.parse(response.body);
+    },
+
+    genres: [
+        "4-Koma", "Action", "Adaptation", "Adult", "Adventure", "Animals", "Anthology", "Antihero", 
+        "apocalypse", "Award Winning", "Beasts", "Bodyswap", "Boys' Love", "Bully", "Cartoon", 
+        "Childhood Friends", "Comedy", "Comic", "Cooking", "Crime", "Crossdressing", "Dance", 
+        "Dark Fantasy", "Delinquent", "Delinquents", "Dementia", "Demon", "Demons", "Doujinshi", 
+        "Drama", "Dungeons", "Ecchi", "Emperor's daughter", "Entertainment", "Fan-Colored", 
+        "Fantas", "Fantasy", "Fetish", "Full Color", "Game", "Games", "Gang", "Gender Bender", 
+        "Genderswap", "Ghosts", "Girls", "Girls' Love", "gore", "gorre", "Gyaru", "Harem", 
+        "Hentai", "Hero", "Historical", "Horror", "Imageset", "Incest", "Isekai", "Josei", 
+        "Josei(W)", "Kids", "Leveling", "Loli", "Lolicon", "Long Strip", "Mafia", "Magi", 
+        "Magic", "Magical Girls", "Martial Art", "Martial Arts", "Mature", "Mecha", "Medical", 
+        "Military", "Mirror", "Modern", "Monster Girls", "Monsters", "Murim", "Music", 
+        "Mystery", "Necromancer", "Ninja", "Non-human", "Office Workers", "Official Colored", 
+        "One-Shot", "Oneshot", "Overpowered", "Parody", "Pets", "Philosophical", "Police", 
+        "Post-Apocalyptic", "Project", "Psychological", "Regression", "Reincarnation", "Revenge",
+        "Reverse Harem", "Reverse Isekai", "Romance", "Royalty", "School", "School Life", 
+        "Sci-fi", "Seinen", "Seinen(M)", "Seinin", "Sexual Violence", "Shotacon", "Shoujo", 
+        "Shoujo Ai", "Shoujo(G)", "Shounen", "Shounen Ai", "Shounen(B)", "Shounn", "Showbiz", 
+        "Slice of Life", "Smut", "Space", "Sport", "Sports", "Super Power", "Superhero", 
+        "Supernatural", "Supranatural", "Survival", "System", "Thriller", "Time Travel", 
+        "Traditional Games", "Tragedy", "Transmigration", "Vampire", "Vampires", "Video Games", 
+        "Villainess", "Violence", "Virtual Reality", "Web Comic", "Webtoon", "Webtoons", 
+        "Wuxia", "Xianxia", "Xuanhuan", "Yaoi", "Yuri", "Zombies"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua", "Webtoon", "Comic", "Mangatoon", "Novel"
+    ],
+
+    genreMap: {
+        "4-Koma": 2400, "Action": 2, "Adaptation": 3475, "Adult": 128, "Adventure": 3, "Animals": 8050,
+        "Anthology": 4701, "Antihero": 8431, "apocalypse": 20525, "Award Winning": 7613, "Beasts": 8555,
+        "Bodyswap": 8052, "Boys' Love": 7695, "Bully": 6565, "Cartoon": 8053, "Childhood Friends": 8171,
+        "Comedy": 14, "Comic": 8054, "Cooking": 1372, "Crime": 5175, "Crossdressing": 5820, "Dance": 7980,
+        "Dark Fantasy": 6264, "Delinquent": 6566, "Delinquents": 7578, "Dementia": 8055, "Demon": 5464,
+        "Demons": 37, "Doujinshi": 902, "Drama": 11, "Dungeons": 8056, "Ecchi": 66, "Emperor's daughter": 8087,
+        "Entertainment": 20392, "Fan-Colored": 8088, "Fantas": 8462, "Fantasy": 4, "Fetish": 8057,
+        "Full Color": 4460, "Game": 1494, "Games": 4242, "Gang": 6848, "Gender Bender": 84, "Genderswap": 5614,
+        "Ghosts": 7600, "Girls": 7669, "Girls' Love": 6119, "gore": 2167, "gorre": 6286, "Gyaru": 6343,
+        "Harem": 23, "Hentai": 21217, "Hero": 7497, "Historical": 24, "Horror": 67, "Imageset": 8058,
+        "Incest": 5620, "Isekai": 15, "Josei": 78, "Josei(W)": 7675, "Kids": 8017, "Leveling": 3434,
+        "Loli": 1315, "Lolicon": 852, "Long Strip": 5623, "Mafia": 7599, "Magi": 7330, "Magic": 38,
+        "Magical Girls": 5569, "Martial Art": 1720, "Martial Arts": 18, "Mature": 30, "Mecha": 329,
+        "Medical": 1709, "Military": 3510, "Mirror": 6850, "Modern": 4376, "Monster Girls": 5657,
+        "Monsters": 5656, "Murim": 5587, "Music": 2024, "Mystery": 7, "Necromancer": 4377, "Ninja": 8059,
+        "Non-human": 8060, "Office Workers": 7614, "Official Colored": 5777, "One-Shot": 3956,
+        "Oneshot": 3419, "Overpowered": 4378, "Parody": 3872, "Pets": 4379, "Philosophical": 6455,
+        "Police": 4975, "Post-Apocalyptic": 6122, "Project": 5840, "Psychological": 92, "Regression": 5862,
+        "Reincarnation": 40, "Revenge": 7676, "Reverse Harem": 7655, "Reverse Isekai": 8061, "Romance": 8,
+        "Royalty": 7671, "School": 1194, "School Life": 12, "Sci-fi": 49, "Seinen": 19, "Seinen(M)": 7677,
+        "Seinin": 5182, "Sexual Violence": 5622, "Shotacon": 1519, "Shoujo": 9, "Shoujo Ai": 240,
+        "Shoujo(G)": 7672, "Shounen": 5, "Shounen Ai": 97, "Shounen(B)": 7673, "Shounn": 6500,
+        "Showbiz": 8015, "Slice of Life": 20, "Smut": 1070, "Space": 8062, "Sport": 8010, "Sports": 166,
+        "Super Power": 3613, "Superhero": 4479, "Supernatural": 21, "Supranatural": 5599, "Survival": 5886,
+        "System": 3493, "Thriller": 1124, "Time Travel": 6056, "Traditional Games": 8063, "Tragedy": 36,
+        "Transmigration": 8051, "Vampire": 4024, "Vampires": 5617, "Video Games": 5616, "Villainess": 7150,
+        "Violence": 5660, "Virtual Reality": 5615, "Web Comic": 5626, "Webtoon": 7674, "Webtoons": 701,
+        "Wuxia": 378, "Xianxia": 20177, "Xuanhuan": 8064, "Yaoi": 903, "Yuri": 224, "Zombies": 5877
+    },
+
+    typeMap: {
+        "Manga": 8683, "Manhwa": 8679, "Manhua": 8687, "Webtoon": 7674, "Comic": 11540,
+        "Mangatoon": 21390, "Novel": 12658
     }
 };

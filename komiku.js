@@ -117,28 +117,82 @@ var source = {
         return ((lastPage - 1) * apiPageSize) + lastResult.items.length;
     },
 
-    getMangaList: function(page, status) {
-        if (status === 1 || status === 2 || status === 4) {
-            return this.getStatusMangaList(page, status);
-        }
-        return this.getPopularManga(page);
-    },
+    getMangaList: function(page, status, genre, type) {
+        let params = [];
+        let isFiltered = false;
 
-    getStatusMangaList: function(page, status) {
-        let statusParam = status === 1 ? "ongoing" : "end";
-        let queryString = `?statusmanga=${statusParam}&orderby=meta_value_num`;
-        let knownApiPages = status === 2 || status === 4 ? 58 : 646;
-        let totalMode = "probe-known-end";
-        
-        let result = this.getApiMangaPage(page, queryString, knownApiPages, totalMode);
-        
-        if (result && result.items) {
-            for (let i = 0; i < result.items.length; i++) {
-                result.items[i].status = status;
+        // 1. Status Filter
+        if (status === 1) {
+            params.push("statusmanga=ongoing");
+        } else if (status === 2) {
+            params.push("statusmanga=end");
+        }
+
+        // 2. Genre Filter
+        if (genre) {
+            let arr = [];
+            if (Array.isArray(genre)) {
+                arr = genre;
+            } else if (genre.length !== undefined && typeof genre !== 'string') {
+                for (let i = 0; i < genre.length; i++) {
+                    arr.push(genre[i]);
+                }
+            } else {
+                arr = [genre];
+            }
+
+            let genresQuery = arr.map(g => g.toLowerCase().replace(/\s+/g, "-")).filter(Boolean);
+            if (genresQuery.length > 0) {
+                params.push("genre=" + encodeURIComponent(genresQuery.join(",")));
+                isFiltered = true;
             }
         }
-        
-        return result;
+
+        // 3. Format/Type Filter
+        if (type) {
+            let arr = [];
+            if (Array.isArray(type)) {
+                arr = type;
+            } else if (type.length !== undefined && typeof type !== 'string') {
+                for (let i = 0; i < type.length; i++) {
+                    arr.push(type[i]);
+                }
+            } else {
+                arr = [type];
+            }
+
+            let typesQuery = arr.map(t => t.toLowerCase()).filter(Boolean);
+            if (typesQuery.length > 0) {
+                params.push("tipe=" + encodeURIComponent(typesQuery.join(",")));
+                isFiltered = true;
+            }
+        }
+
+        if (params.length > 0) {
+            let queryString = "?" + params.join("&") + "&orderby=meta_value_num";
+            
+            // Only use the optimized probe if filtering strictly by status
+            if (!isFiltered && (status === 1 || status === 2)) {
+                let knownApiPages = status === 2 ? 58 : 646;
+                let result = this.getApiMangaPage(page, queryString, knownApiPages, "probe-known-end");
+                if (result && result.items) {
+                    for (let i = 0; i < result.items.length; i++) {
+                        result.items[i].status = status;
+                    }
+                }
+                return result;
+            } else {
+                let result = this.getApiMangaPage(page, queryString, 500);
+                if (result && result.items && (status === 1 || status === 2)) {
+                    for (let i = 0; i < result.items.length; i++) {
+                        result.items[i].status = status;
+                    }
+                }
+                return result;
+            }
+        }
+
+        return this.getPopularManga(page);
     },
 
     getMangaDetails: function(url) {
@@ -375,5 +429,26 @@ var source = {
             }
         }
         return 0;
-    }
+    },
+
+    genres: [
+        "Academy", "Action", "Adaptation", "Adult", "Adventure", "apocalypse", "Beasts", "Blacksmith",
+        "Comedy", "Comic", "Cooking", "Crime", "Crossdressing", "Dark Fantasy", "Demon", "Demons",
+        "Doujinshi", "Drama", "Ecchi", "Entertainment", "Fantasy", "Fight", "Game", "Gender Bender",
+        "Genderswap", "Genius", "Ghosts", "Gore", "Gyaru", "Harem", "Hentai", "Historical",
+        "Horror", "Isekai", "Josei", "Knight", "Long Strip", "Magic", "Magical Girls", "Manga",
+        "Mangatoon", "Manhwa", "Martial Art", "Martial Arts", "Mature", "MC Rebirth", "Mecha",
+        "Medical", "Military", "Monster", "Monster girls", "Monsters", "Murim", "Music",
+        "Mystery", "Office Workers", "One Shot", "Oneshot", "Police", "Psychological", "Regression",
+        "Reincarnation", "Revenge", "Romance", "School", "School life", "Sci-fi", "Seinen",
+        "Sexual Violence", "Shotacon", "Shoujo", "Shoujo Ai", "Shoujo(G)", "Shounen", "Shounen Ai",
+        "Slice of Life", "Slow Life", "Smut", "Sport", "Sports", "Strategy", "Super Power",
+        "Supernatural", "Survival", "Sword Fight", "Sword Master", "Swormanship", "System",
+        "Thriller", "Time Travel", "Tragedy", "Trauma", "Vampire", "Video Games", "Villainess",
+        "Violence", "Web Comic", "Webtoon", "Webtoons", "Xianxia", "Xuanhuan", "Yuri"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua"
+    ]
 };

@@ -37,14 +37,50 @@ var source = {
         };
 
         query = (query || "").trim();
-        if (query) {
-            params.filter = "title=like=\"" + query + "\",nativeTitle=like=\"" + query + "\"";
+        let remainingQuery = query;
+        let selectedGenres = [];
+
+        let lowerQuery = query.toLowerCase();
+        let sortedGenres = this.genres.slice().sort((a, b) => b.length - a.length);
+
+        for (let i = 0; i < sortedGenres.length; i++) {
+            let g = sortedGenres[i];
+            let lowerG = g.toLowerCase();
+            let patterns = ["genre:" + lowerG, "#" + lowerG];
+
+            for (let p = 0; p < patterns.length; p++) {
+                let pat = patterns[p];
+                let idx = lowerQuery.indexOf(pat);
+                if (idx !== -1) {
+                    selectedGenres.push(g);
+                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
+                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
+                }
+            }
+        }
+
+        remainingQuery = remainingQuery.replace(/\s+/g, " ").trim();
+
+        if (selectedGenres.length === 0 && remainingQuery) {
+            let g = this.findGenre(remainingQuery);
+            if (g) {
+                selectedGenres.push(g);
+                remainingQuery = "";
+            }
+        }
+
+        if (selectedGenres.length > 0) {
+            params.genreIds = selectedGenres;
+        }
+
+        if (remainingQuery) {
+            params.filter = "title=like=\"" + remainingQuery + "\",nativeTitle=like=\"" + remainingQuery + "\"";
         }
 
         return this.getSeriesPage(page, params);
     },
 
-    getMangaList: function(page, status) {
+    getMangaList: function(page, status, genre, type) {
         let params = {
             includeMeta: "true",
             sort: "popularity",
@@ -59,6 +95,35 @@ var source = {
             params.status = "hiatus";
         } else if (status === 4) {
             params.status = "cancelled";
+        }
+
+        if (genre) {
+            let arr = [];
+            if (Array.isArray(genre)) {
+                arr = genre;
+            } else if (genre.length !== undefined && typeof genre !== 'string') {
+                for (let i = 0; i < genre.length; i++) {
+                    arr.push(genre[i]);
+                }
+            } else {
+                arr = [genre];
+            }
+            params.genreIds = arr;
+        }
+
+        if (type) {
+            let arr = [];
+            if (Array.isArray(type)) {
+                arr = type;
+            } else if (type.length !== undefined && typeof type !== 'string') {
+                for (let i = 0; i < type.length; i++) {
+                    arr.push(type[i]);
+                }
+            } else {
+                arr = [type];
+            }
+            // map formats to lowercase for KomikCast API
+            params.format = arr.map(f => f.toLowerCase());
         }
 
         return this.getSeriesPage(page, params);
@@ -194,9 +259,6 @@ var source = {
         }
 
         let genres = this.extractGenres(data.genres);
-        if (formatLabel && genres.indexOf(formatLabel) === -1) {
-            genres.unshift(formatLabel);
-        }
 
         return {
             title: title,
@@ -263,7 +325,25 @@ var source = {
     parseDate: function(value) {
         if (!value) return 0;
         let time = Date.parse(value);
-        return isNaN(time) ? 0 : time;
+        if (!isNaN(time)) return time;
+        
+        let lower = value.toLowerCase();
+        let match = lower.match(/(\d+)\s+(year|month|week|day|hour|minute|sec|detik|menit|jam|hari|minggu|bulan|tahun)/);
+        if (match) {
+            let amount = parseInt(match[1]);
+            let unit = match[2];
+            let now = new Date().getTime();
+            let mult = 1000;
+            if (unit === 'sec' || unit === 'detik') mult = 1000;
+            else if (unit === 'minute' || unit === 'menit') mult = 60 * 1000;
+            else if (unit === 'hour' || unit === 'jam') mult = 60 * 60 * 1000;
+            else if (unit === 'day' || unit === 'hari') mult = 24 * 60 * 60 * 1000;
+            else if (unit === 'week' || unit === 'minggu') mult = 7 * 24 * 60 * 60 * 1000;
+            else if (unit === 'month' || unit === 'bulan') mult = 30 * 24 * 60 * 60 * 1000;
+            else if (unit === 'year' || unit === 'tahun') mult = 365 * 24 * 60 * 60 * 1000;
+            return now - (amount * mult);
+        }
+        return 0;
     },
 
     getJson: function(url) {
@@ -293,5 +373,30 @@ var source = {
             }
         }
         return parts.length > 0 ? "?" + parts.join("&") : "";
+    },
+
+    genres: [
+        "4-Koma", "Action", "Adult", "Adventure", "Comedy", "Cooking", "Demons", "Drama",
+        "Ecchi", "Fantasy", "Game", "Gender Bender", "Gore", "Harem", "Historical", "Horror",
+        "Isekai", "Josei", "Magic", "Martial Arts", "Mature", "Mecha", "Medical", "Military",
+        "Music", "Mystery", "One-Shot", "Police", "Psychological", "Reincarnation", "Romance",
+        "School", "School Life", "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen",
+        "Shounen Ai", "Slice of Life", "Sports", "Super Power", "Supernatural", "Thriller",
+        "Tragedy", "Vampire", "Webtoons", "Yuri"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua", "Webtoon"
+    ],
+
+    findGenre: function(name) {
+        if (!name) return null;
+        let lower = name.toLowerCase().trim();
+        for (let i = 0; i < this.genres.length; i++) {
+            if (this.genres[i].toLowerCase() === lower) {
+                return this.genres[i];
+            }
+        }
+        return null;
     }
 };

@@ -30,16 +30,59 @@ var source = {
         return this.getMangaPage(path, page, 0);
     },
 
-    getMangaList: function(page, status) {
+    getMangaList: function(page, status, genre, type) {
         let params = { order: "popular" };
         let forcedStatus = 0;
 
+        // 1. Status Filter
         if (status === 1) {
             params.status = "ongoing";
             forcedStatus = 1;
         } else if (status === 2) {
             params.status = "completed";
             forcedStatus = 2;
+        }
+
+        // 2. Genre Filter
+        if (genre) {
+            let arr = [];
+            if (Array.isArray(genre)) {
+                arr = genre;
+            } else if (genre.length !== undefined && typeof genre !== 'string') {
+                for (let i = 0; i < genre.length; i++) {
+                    arr.push(genre[i]);
+                }
+            } else {
+                arr = [genre];
+            }
+            
+            let genreSlugs = [];
+            for (let i = 0; i < arr.length; i++) {
+                let name = arr[i].toLowerCase().trim().replace(/\s+/g, "-");
+                if (name) genreSlugs.push(name);
+            }
+            if (genreSlugs.length > 0) {
+                params["genre[]"] = genreSlugs;
+            }
+        }
+
+        // 3. Format/Type Filter
+        if (type) {
+            let arr = [];
+            if (Array.isArray(type)) {
+                arr = type;
+            } else if (type.length !== undefined && typeof type !== 'string') {
+                for (let i = 0; i < type.length; i++) {
+                    arr.push(type[i]);
+                }
+            } else {
+                arr = [type];
+            }
+
+            // MaidManga accepts Manga, Manhwa, Manhua, One-shot, Doujin as type
+            if (arr.length > 0) {
+                params.type = arr[0];
+            }
         }
 
         return this.getAdvancedSearchPage(page, params, forcedStatus);
@@ -422,8 +465,14 @@ var source = {
     toQuery: function(params) {
         let parts = [];
         for (let key in params) {
-            if (params[key] !== undefined && params[key] !== null && params[key] !== "") {
-                parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
+            let value = params[key];
+            if (value === undefined || value === null || value === "") continue;
+            if (Array.isArray(value)) {
+                for (let i = 0; i < value.length; i++) {
+                    parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(value[i]));
+                }
+            } else {
+                parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(value));
             }
         }
         return parts.length > 0 ? "?" + parts.join("&") : "";
@@ -500,5 +549,20 @@ var source = {
             .replace(/&#039;/g, "'")
             .replace(/&nbsp;/g, " ")
             .replace(/&hellip;/g, "...");
-    }
+    },
+
+    genres: [
+        "4-Koma", "Action", "Adult", "Adventure", "Blue Archive", "Comedy", "Crossdressing", "Demons",
+        "Drama", "Ecchi", "Fantasy", "Game", "Gender bender", "Genderswap", "Gore", "Harem",
+        "Historical", "Horror", "Isekai", "Josei", "Loli", "Magic", "Martial Arts", "Mature",
+        "Mecha", "Military", "Monster Girls", "Music", "Mystery", "Office Worker", "One Shot",
+        "Parody", "Phschological", "Police", "Psychological", "Romance", "Romcom", "School",
+        "School Life", "Sci-Fi", "Seinen", "Seinin", "Shota", "Shotacon", "Shoujo", "Shoujo Ai",
+        "Shounen", "Shounen Ai", "Slice of Life", "Smut", "Sports", "Super Power", "Supernatural",
+        "Survival", "Thriller", "Time Travel", "Tragedy", "Vampire", "Webtoons", "Yuri"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua", "One-shot", "Doujin"
+    ]
 };
