@@ -32,20 +32,13 @@ var source = {
         
         let genreSlug = "all";
         
-        // 1. Prioritize genre filter
+        // Prioritize genre filter (which now includes Manga, Manhwa, Manhua)
         if (genre) {
             let arr = Array.isArray(genre) ? genre : [genre];
             if (arr.length > 0) {
                 genreSlug = this.mapGenreToSlug(arr[0]);
             }
         } 
-        // 2. Fallback to format filter (Manga, Manhwa, Manhua)
-        else if (type) {
-            let arr = Array.isArray(type) ? type : [type];
-            if (arr.length > 0) {
-                genreSlug = this.mapGenreToSlug(arr[0]);
-            }
-        }
 
         let state = "all";
         let forcedStatus = 0;
@@ -437,10 +430,7 @@ var source = {
         "Gender Bender", "Harem", "Historical", "Horror", "Isekai", "Josei", "Loli", "Martial Arts", 
         "Mature", "Mecha", "Medical", "Mystery", "One Shot", "Psychological", "Romance", "School Life", 
         "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Slice of Life", "Smut", 
-        "Sports", "Supernatural", "Tragedy", "Webtoons", "Yaoi", "Yuri"
-    ],
-
-    formats: [
+        "Sports", "Supernatural", "Tragedy", "Webtoons", "Yaoi", "Yuri",
         "Manga", "Manhwa", "Manhua"
     ]
 };
