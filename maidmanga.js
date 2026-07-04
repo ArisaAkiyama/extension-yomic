@@ -120,7 +120,9 @@ var source = {
         let title = this.textOf(document, ".series-titlex h2, .series-title h2, h1, h2")
             || this.extractMetaContent(html, "og:title").replace(/\s+Bahasa\s+Indonesia.*$/i, "")
             || this.titleFromUrl(absUrl);
-        let thumbnailUrl = this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "src")
+        let thumbnailUrl = this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "data-lazy-src")
+            || this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "data-src")
+            || this.attrAbsOf(document, ".series-thumb img, .series-cover img, img.wp-post-image", "src")
             || this.extractMetaContent(html, "og:image");
         let status = this.mapStatus(
             this.textOf(document, ".series-infoz.block .status, .series-infoz .status, .status") ||
