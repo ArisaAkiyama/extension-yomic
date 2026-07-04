@@ -171,17 +171,37 @@ var source = {
         let html = this.getHtml(absUrl);
         if (!html || this.isBlockedHtml(html)) return [];
 
-        let main = this.matchFirst(html, /<main\b[^>]*>([\s\S]*?)<\/main>/i) || html;
+        let doc = Html.parse(html, absUrl);
+        let container = doc.querySelector("section[data-image-data], #readerarea, .readerarea");
+        let images = container ? container.querySelectorAll("img") : doc.querySelectorAll("main img, #readerarea img");
+        
         let pages = [];
         let seen = {};
-        let re = /https?:\/\/[^"'<>\s]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^"'<>\s]*)?/gi;
-        let match;
+        for (let i = 0; i < images.length; i++) {
+            let src = images[i].absUrl("src") || images[i].absUrl("data-src") || images[i].absUrl("data-lazy-src");
+            if (!src) continue;
+            
+            let urlLower = src.toLowerCase();
+            if (urlLower.indexOf("logo-kiryuu") !== -1 || urlLower.indexOf("cropped-logo") !== -1) continue;
+            if (urlLower.indexOf("banner-kiryuu") !== -1 || urlLower.indexOf("kiryuu.io") !== -1) continue;
+            if (urlLower.indexOf("avatar") !== -1 || urlLower.indexOf("gravatar.com") !== -1) continue;
 
-        while ((match = re.exec(main)) !== null) {
-            let imageUrl = this.decodeHtml(match[0]).replace(/\\\//g, "/");
-            if (this.isReaderImage(imageUrl) && !seen[imageUrl]) {
-                seen[imageUrl] = true;
-                pages.push(imageUrl + "|Referer=" + absUrl);
+            if (!seen[src]) {
+                seen[src] = true;
+                pages.push(src + "|Referer=" + absUrl);
+            }
+        }
+
+        if (pages.length === 0) {
+            let main = this.matchFirst(html, /<main\b[^>]*>([\s\S]*?)<\/main>/i) || html;
+            let re = /https?:\/\/[^"'<>\s]+\.(?:jpg|jpeg|png|webp|avif)(?:\?[^"'<>\s]*)?/gi;
+            let match;
+            while ((match = re.exec(main)) !== null) {
+                let imageUrl = this.decodeHtml(match[0]).replace(/\\\//g, "/");
+                if (this.isReaderImage(imageUrl) && !seen[imageUrl]) {
+                    seen[imageUrl] = true;
+                    pages.push(imageUrl + "|Referer=" + absUrl);
+                }
             }
         }
 
