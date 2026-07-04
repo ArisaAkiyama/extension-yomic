@@ -36,11 +36,11 @@ var source = {
     parseMangaList: function(html) {
         let data = this.extractNextData(html);
         if (!data || !data.props || !data.props.pageProps || !data.props.pageProps.libData) {
-            return { items: [], hasMore: false };
+            return { items: [], totalPages: 1 };
         }
         let libData = data.props.pageProps.libData;
         if (!libData.data) {
-            return { items: [], hasMore: false };
+            return { items: [], totalPages: 1 };
         }
         
         let items = libData.data.map(m => {
@@ -54,7 +54,7 @@ var source = {
             };
         });
         
-        return { items: items, hasMore: libData.page < libData.maxPage };
+        return { items: items, totalPages: libData.maxPage || 1 };
     },
 
     getPopularManga: function(page) {
@@ -65,29 +65,6 @@ var source = {
 
     getLatestUpdates: function(page) {
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
-        let html = this.getHtml(url);
-        return this.parseMangaList(html);
-    },
-
-    getMangaList: function(page, status, genre, type) {
-        let url = this.baseUrl + "/komik/library?page=" + page;
-
-        if (status === 1) {
-            url += "&status=ongoing";
-        } else if (status === 2) {
-            url += "&status=completed";
-        }
-
-        if (genre && genre.length > 0) {
-            let gStr = Array.isArray(genre) ? genre.join(",") : genre;
-            url += "&genre=" + encodeURIComponent(gStr);
-        }
-
-        if (type && type.length > 0) {
-            let tStr = Array.isArray(type) ? type.join(",") : type;
-            url += "&type=" + encodeURIComponent(tStr);
-        }
-
         let html = this.getHtml(url);
         return this.parseMangaList(html);
     },
