@@ -27,6 +27,12 @@ var source = {
         return null;
     },
 
+    getHtml: function(url, options) {
+        let response = fetch(url, options);
+        if (response.status < 200 || response.status >= 300) return "";
+        return response.body;
+    },
+
     parseMangaList: function(html) {
         let data = this.extractNextData(html);
         if (!data || !data.props || !data.props.pageProps || !data.props.pageProps.libData) {
@@ -53,13 +59,13 @@ var source = {
 
     getPopularManga: function(page) {
         let url = this.baseUrl + "/komik/library?sortBy=popular&page=" + page;
-        let html = Yomic.getHtml(url);
+        let html = this.getHtml(url);
         return this.parseMangaList(html);
     },
 
     getLatestUpdates: function(page) {
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
-        let html = Yomic.getHtml(url);
+        let html = this.getHtml(url);
         return this.parseMangaList(html);
     },
 
@@ -71,7 +77,7 @@ var source = {
         // Softkomik's API is protected with token and signature.
         // We use the library page text search which might return results or might require API.
         let url = this.baseUrl + "/komik/library?name=" + encodeURIComponent(query) + "&page=" + page;
-        let html = Yomic.getHtml(url);
+        let html = this.getHtml(url);
         return this.parseMangaList(html);
     },
     
@@ -84,7 +90,7 @@ var source = {
     
     getApiSession: function(isChapterImage) {
         let url = isChapterImage ? this.sessionImageUrl : this.sessionListUrl;
-        let html = Yomic.getHtml(url, {
+        let html = this.getHtml(url, {
             headers: {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
@@ -107,7 +113,7 @@ var source = {
 
     getMangaDetails: function(manga) {
         let url = this.baseUrl + manga.id;
-        let html = Yomic.getHtml(url);
+        let html = this.getHtml(url);
         let data = this.extractNextData(html);
         
         if (!data || !data.props || !data.props.pageProps) {
@@ -135,7 +141,7 @@ var source = {
         let chapterUrl = this.apiUrl + "/komik" + manga.id + "/chapter?limit=9999999";
         // Check for mature genres for required login prefix/suffix if needed.
         
-        let chHtml = Yomic.getHtml(chapterUrl, { headers: sessionHeaders });
+        let chHtml = this.getHtml(chapterUrl, { headers: sessionHeaders });
         let chapters = [];
         if (chHtml) {
             try {
@@ -166,7 +172,7 @@ var source = {
 
     getPages: function(chapter) {
         let url = chapter.url;
-        let html = Yomic.getHtml(url);
+        let html = this.getHtml(url);
         let data = this.extractNextData(html);
         
         if (!data || !data.props || !data.props.pageProps) {
@@ -189,7 +195,7 @@ var source = {
             let chNum = idParts[3];
             let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id;
             
-            let imgHtml = Yomic.getHtml(imgApiUrl, { headers: sessionHeaders });
+            let imgHtml = this.getHtml(imgApiUrl, { headers: sessionHeaders });
             if (imgHtml) {
                 try {
                     let imgData = JSON.parse(imgHtml);
