@@ -325,25 +325,7 @@ var source = {
     parseDate: function(value) {
         if (!value) return 0;
         let time = Date.parse(value);
-        if (!isNaN(time)) return time;
-        
-        let lower = value.toLowerCase();
-        let match = lower.match(/(\d+)\s+(year|month|week|day|hour|minute|sec|detik|menit|jam|hari|minggu|bulan|tahun)/);
-        if (match) {
-            let amount = parseInt(match[1]);
-            let unit = match[2];
-            let now = new Date().getTime();
-            let mult = 1000;
-            if (unit === 'sec' || unit === 'detik') mult = 1000;
-            else if (unit === 'minute' || unit === 'menit') mult = 60 * 1000;
-            else if (unit === 'hour' || unit === 'jam') mult = 60 * 60 * 1000;
-            else if (unit === 'day' || unit === 'hari') mult = 24 * 60 * 60 * 1000;
-            else if (unit === 'week' || unit === 'minggu') mult = 7 * 24 * 60 * 60 * 1000;
-            else if (unit === 'month' || unit === 'bulan') mult = 30 * 24 * 60 * 60 * 1000;
-            else if (unit === 'year' || unit === 'tahun') mult = 365 * 24 * 60 * 60 * 1000;
-            return now - (amount * mult);
-        }
-        return 0;
+        return isNaN(time) ? 0 : time;
     },
 
     getJson: function(url) {
