@@ -69,6 +69,54 @@ var source = {
         return this.parseMangaList(html);
     },
 
+    getMangaList: function(page, status, genre, type) {
+        let url = this.baseUrl + "/komik/library?page=" + page;
+        
+        let sortBy = "popular";
+        url += "&sortBy=" + sortBy;
+
+        if (status === 1) {
+            url += "&status=ongoing";
+        } else if (status === 2) {
+            url += "&status=completed";
+        }
+        
+        if (genre) {
+            let arr = [];
+            if (Array.isArray(genre)) {
+                arr = genre;
+            } else if (genre.length !== undefined && typeof genre !== 'string') {
+                for (let i = 0; i < genre.length; i++) {
+                    arr.push(genre[i]);
+                }
+            } else {
+                arr = [genre];
+            }
+            if (arr.length > 0) {
+                url += "&genre=" + encodeURIComponent(arr.join(","));
+            }
+        }
+        
+        if (type) {
+            let arr = [];
+            if (Array.isArray(type)) {
+                arr = type;
+            } else if (type.length !== undefined && typeof type !== 'string') {
+                for (let i = 0; i < type.length; i++) {
+                    arr.push(type[i]);
+                }
+            } else {
+                arr = [type];
+            }
+            if (arr.length > 0) {
+                url += "&type=" + encodeURIComponent(arr[0].toLowerCase());
+            }
+        }
+
+        let html = this.getHtml(url);
+        return this.parseMangaList(html);
+    },
+
     getSearchManga: function(query, page) {
         if (!query) {
             return this.getPopularManga(page);
