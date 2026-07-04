@@ -398,12 +398,7 @@ var source = {
     },
 
     getHtml: function(url) {
-        let response = fetch(url, {
-            headers: {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Referer": this.baseUrl + "/"
-            }
-        });
+        let response = fetch(url);
         if (response.status < 200 || response.status >= 300) return "";
         return response.body;
     },
