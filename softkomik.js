@@ -28,9 +28,13 @@ var source = {
     },
 
     getHtml: function(url, options) {
-        let response = fetch(url, options);
-        if (response.status < 200 || response.status >= 300) return "";
-        return response.body;
+        try {
+            let response = fetch(url, options);
+            if (response && response.status >= 200 && response.status < 300) {
+                return response.body;
+            }
+        } catch(e) {}
+        return "";
     },
 
     parseMangaList: function(html) {
