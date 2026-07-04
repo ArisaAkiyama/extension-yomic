@@ -122,11 +122,33 @@ var source = {
             return this.getPopularManga(page);
         }
         
-        // Softkomik's API is protected with token and signature.
-        // We use the library page text search which might return results or might require API.
-        let url = this.baseUrl + "/komik/library?name=" + encodeURIComponent(query) + "&page=" + page;
-        let html = this.getHtml(url);
-        return this.parseMangaList(html);
+        let sessionHeaders = this.getApiSession(false) || {};
+        let url = this.apiUrl + "/komik?name=" + encodeURIComponent(query) + "&search=true&limit=" + this.pageSize + "&page=" + page;
+        let html = this.getHtml(url, { headers: sessionHeaders });
+        
+        let items = [];
+        let totalPages = 1;
+        
+        if (html) {
+            try {
+                let json = JSON.parse(html);
+                if (json.data && Array.isArray(json.data)) {
+                    items = json.data.map(m => {
+                        let cover = m.gambar;
+                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
+                        return {
+                            id: "/" + m.title_slug,
+                            title: m.title,
+                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
+                            url: this.baseUrl + "/" + m.title_slug
+                        };
+                    });
+                }
+                totalPages = json.maxPage || 1;
+            } catch(e) {}
+        }
+        
+        return { items: items, totalPages: totalPages };
     },
     
     cleanB64: function(str) {
