@@ -27,15 +27,38 @@ var source = {
         return this.getMangaPage("/search/story/" + this.normalizeSearchQuery(query) + "?page=" + page);
     },
 
-    getMangaList: function(page, status) {
+    getMangaList: function(page, status, genre, type) {
         page = Math.max(1, page || 1);
+        
+        let genreSlug = "all";
+        
+        // 1. Prioritize genre filter
+        if (genre) {
+            let arr = Array.isArray(genre) ? genre : [genre];
+            if (arr.length > 0) {
+                genreSlug = this.mapGenreToSlug(arr[0]);
+            }
+        } 
+        // 2. Fallback to format filter (Manga, Manhwa, Manhua)
+        else if (type) {
+            let arr = Array.isArray(type) ? type : [type];
+            if (arr.length > 0) {
+                genreSlug = this.mapGenreToSlug(arr[0]);
+            }
+        }
+
+        let state = "all";
+        let forcedStatus = 0;
         if (status === 1) {
-            return this.getMangaPage("/genre/all?filter=9&page=" + page, 1);
+            state = "ongoing";
+            forcedStatus = 1;
+        } else if (status === 2) {
+            state = "completed";
+            forcedStatus = 2;
         }
-        if (status === 2) {
-            return this.getMangaPage("/genre/all?filter=8&page=" + page, 2);
-        }
-        return this.getPopularManga(page);
+
+        let path = "/genre/" + genreSlug + "?state=" + state + "&type=topview&page=" + page;
+        return this.getMangaPage(path, forcedStatus);
     },
 
     getMangaPage: function(path, forcedStatus) {
@@ -401,5 +424,23 @@ var source = {
         });
         if (response.status < 200 || response.status >= 300) return null;
         return JSON.parse(response.body);
-    }
+    },
+
+    mapGenreToSlug: function(genre) {
+        return (genre || "").toLowerCase().trim()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "");
+    },
+
+    genres: [
+        "Action", "Adult", "Adventure", "Comedy", "Cooking", "Doujinshi", "Drama", "Ecchi", "Fantasy", 
+        "Gender Bender", "Harem", "Historical", "Horror", "Isekai", "Josei", "Loli", "Martial Arts", 
+        "Mature", "Mecha", "Medical", "Mystery", "One Shot", "Psychological", "Romance", "School Life", 
+        "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Slice of Life", "Smut", 
+        "Sports", "Supernatural", "Tragedy", "Webtoons", "Yaoi", "Yuri"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua"
+    ]
 };
