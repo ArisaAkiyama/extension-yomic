@@ -812,9 +812,11 @@ var source = {
     },
 
     genres: [
-        "Action", "Adventure", "Comedy", "Demons", "Drama", "Ecchi", "Fantasy", "Gore", "Harem", "Horror",
-        "Isekai", "Magic", "Martial arts", "Monsters", "Reincarnation", "Romance", "School life", "Sci fi",
-        "Seinen", "Shounen", "Slice of Life", "Supernatural", "Tragedy"
+        "Action", "Adult", "Adventure", "Comedy", "Cooking", "Demons", "Drama", "Ecchi", "Fantasy", "Game", 
+        "Gender Bender", "Genderswap", "Gore", "Harem", "Historical", "Horror", "Isekai", "Josei", "Magic", 
+        "Martial arts", "Mature", "Mecha", "Monsters", "Mystery", "Psychological", "Reincarnation", "Romance", 
+        "School life", "Sci fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen", "Slice of Life", "Sports", 
+        "Supernatural", "Thriller", "Tragedy", "Vampire"
     ],
 
     formats: [
@@ -823,27 +825,43 @@ var source = {
 
     genreMap: {
         "Action": 13,
+        "Adult": 19,
         "Adventure": 4,
         "Comedy": 5,
+        "Cooking": 54,
         "Demons": 64,
         "Drama": 6,
         "Ecchi": 14,
         "Fantasy": 7,
+        "Game": 36,
+        "Gender Bender": 149,
+        "Genderswap": 157,
         "Gore": 56,
         "Harem": 17,
+        "Historical": 44,
         "Horror": 211,
         "Isekai": 20,
+        "Josei": 164,
         "Magic": 65,
         "Martial arts": 8,
+        "Mature": 16,
+        "Mecha": 22,
         "Monsters": 91,
+        "Mystery": 30,
+        "Psychological": 23,
         "Reincarnation": 57,
         "Romance": 15,
         "School life": 9,
         "Sci fi": 33,
         "Seinen": 18,
+        "Shoujo": 110,
+        "Shoujo Ai": 113,
         "Shounen": 10,
         "Slice of Life": 11,
+        "Sports": 103,
         "Supernatural": 34,
-        "Tragedy": 92
+        "Thriller": 170,
+        "Tragedy": 92,
+        "Vampire": 160
     }
 };
