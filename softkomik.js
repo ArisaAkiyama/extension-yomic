@@ -175,16 +175,22 @@ var source = {
                 "X-Requested-With": "XMLHttpRequest"
             }
         });
+        if (typeof log === 'function') log("session API (" + url + ") html length: " + (html ? html.length : 0));
         if (html) {
             try {
                 let json = JSON.parse(html);
                 if (json.token && json.sign) {
+                    if (typeof log === 'function') log("session API successfully parsed tokens");
                     return {
                         "X-Token": this.cleanB64(json.token),
                         "X-Sign": json.sign.substring(0, 64)
                     };
+                } else {
+                    if (typeof log === 'function') log("session API parsed JSON but missing token/sign");
                 }
-            } catch(e) {}
+            } catch(e) {
+                if (typeof log === 'function') log("session API JSON parse failed: " + e.message);
+            }
         }
         return null; // fallback to unauthenticated or cache
     },
@@ -220,13 +226,21 @@ var source = {
         if (m.Genre && Array.isArray(m.Genre)) {
             manga.genres = m.Genre.map(g => g.value || g.label);
         }
+        return manga;
+    },
+
+    getChapterList: function(url) {
+        let mangaId = url;
+        if (mangaId.startsWith(this.baseUrl)) {
+            mangaId = mangaId.substring(this.baseUrl.length);
+        }
+        if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
         
-        // Fetch chapters via API
         let sessionHeaders = this.getApiSession(false) || {};
-        let chapterUrl = this.apiUrl + "/komik" + manga.id + "/chapter?limit=9999999";
-        // Check for mature genres for required login prefix/suffix if needed.
+        let chapterUrl = this.apiUrl + "/komik" + mangaId + "/chapter?limit=9999999";
         
         let chHtml = this.getHtml(chapterUrl, { headers: sessionHeaders });
+        
         let chapters = [];
         if (chHtml) {
             try {
@@ -236,7 +250,7 @@ var source = {
                         let c = chData.chapter[i];
                         let chNumStr = c.chapter.toString();
                         let chNum = parseFloat(chNumStr) || -1;
-                        let chUrl = manga.id + "/chapter/" + chNumStr;
+                        let chUrl = mangaId + "/chapter/" + chNumStr;
                         chapters.push({
                             id: chUrl,
                             url: this.baseUrl + chUrl,
@@ -248,11 +262,8 @@ var source = {
                 }
             } catch(e) {}
         }
-        
         chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
-        manga.chapters = chapters;
-        
-        return manga;
+        return chapters;
     },
 
     getPages: function(chapter) {
