@@ -102,7 +102,7 @@ var source = {
         if (status === 1) {
             url += "&status=ongoing";
         } else if (status === 2) {
-            url += "&status=completed";
+            url += "&status=tamat";
         }
         
         if (genre) {
@@ -216,7 +216,7 @@ var source = {
                 let pat = patterns[p];
                 let idx = lowerQuery.indexOf(pat);
                 if (idx !== -1) {
-                    selectedStatus = s === "tamat" ? "completed" : s;
+                    selectedStatus = (s === "completed" || s === "tamat") ? "tamat" : s;
                     remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
                     lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
                 }
