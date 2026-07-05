@@ -220,14 +220,27 @@ var source = {
         let cover = m.gambar;
         if (cover && cover.startsWith("/")) cover = cover.substring(1);
         
+        let rawStatus = (m.status || "").toLowerCase().trim();
+        let status = 0; // Unknown
+        if (rawStatus === "ongoing" || rawStatus === "on going") {
+            status = 1;
+        } else if (rawStatus === "completed" || rawStatus === "complete" || rawStatus === "tamat") {
+            status = 2;
+        }
+        
         manga.title = m.title;
         manga.author = m.author || "";
         manga.description = m.sinopsis || "";
-        manga.status = (m.status || "").toLowerCase() === "ongoing" ? "Ongoing" : "Completed";
+        manga.status = status;
         manga.thumbnailUrl = this.coverBaseUrl + "/" + cover;
         
         if (m.Genre && Array.isArray(m.Genre)) {
-            manga.genres = m.Genre.map(g => g.value || g.label);
+            manga.genres = m.Genre.map(g => {
+                if (typeof g === 'object' && g !== null) {
+                    return g.value || g.label || g.name || "";
+                }
+                return String(g || "");
+            }).filter(g => g !== "");
         }
         return manga;
     },
