@@ -254,10 +254,11 @@ var source = {
                         let chNumStr = c.chapter.toString();
                         let chNum = parseFloat(chNumStr) || -1;
                         let chUrl = mangaId + "/chapter/" + chNumStr;
+                        let formattedName = chNumStr.replace(/^0+(?=\d)/, '');
                         chapters.push({
                             id: chUrl,
                             url: this.baseUrl + chUrl,
-                            name: "Chapter " + chNumStr,
+                            name: "Chapter " + formattedName,
                             chapterNumber: chNum,
                             dateUploaded: c.created_at || ""
                         });
