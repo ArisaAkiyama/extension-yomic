@@ -11,7 +11,7 @@ var source = {
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: true,
-    pageSize: 20,
+    pageSize: 24,
     
     // Fallback known session endpoints (they might change)
     sessionListUrl: "https://softkomik.co/api/session/amsnuy",
@@ -62,23 +62,43 @@ var source = {
     },
 
     getPopularManga: function(page) {
-        let url = this.baseUrl + "/komik/library?sortBy=popular&page=" + page;
-        let html = this.getHtml(url);
-        return this.parseMangaList(html);
+        return this.getMangaList(page);
     },
 
     getLatestUpdates: function(page) {
-        let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
-        let html = this.getHtml(url);
-        return this.parseMangaList(html);
+        let sessionHeaders = this.getApiSession(false) || {};
+        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik";
+        let html = this.getHtml(url, { headers: sessionHeaders });
+        
+        let items = [];
+        let totalPages = 1;
+        
+        if (html) {
+            try {
+                let json = JSON.parse(html);
+                if (json.data && Array.isArray(json.data)) {
+                    items = json.data.map(m => {
+                        let cover = m.gambar || "";
+                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
+                        return {
+                            id: "/" + m.title_slug,
+                            title: m.title,
+                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
+                            url: this.baseUrl + "/" + m.title_slug
+                        };
+                    });
+                }
+                totalPages = json.maxPage || 1;
+            } catch(e) {}
+        }
+        
+        return { items: items, totalPages: totalPages };
     },
 
     getMangaList: function(page, status, genre, type) {
-        let url = this.baseUrl + "/komik/library?page=" + page;
+        let sessionHeaders = this.getApiSession(false) || {};
+        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=popular";
         
-        let sortBy = "popular";
-        url += "&sortBy=" + sortBy;
-
         if (status === 1) {
             url += "&status=ongoing";
         } else if (status === 2) {
@@ -117,17 +137,118 @@ var source = {
             }
         }
 
-        let html = this.getHtml(url);
-        return this.parseMangaList(html);
+        let html = this.getHtml(url, { headers: sessionHeaders });
+        
+        let items = [];
+        let totalPages = 1;
+        
+        if (html) {
+            try {
+                let json = JSON.parse(html);
+                if (json.data && Array.isArray(json.data)) {
+                    items = json.data.map(m => {
+                        let cover = m.gambar || "";
+                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
+                        return {
+                            id: "/" + m.title_slug,
+                            title: m.title,
+                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
+                            url: this.baseUrl + "/" + m.title_slug
+                        };
+                    });
+                }
+                totalPages = json.maxPage || 1;
+            } catch(e) {}
+        }
+        
+        return { items: items, totalPages: totalPages };
     },
 
     getSearchManga: function(query, page) {
-        if (!query) {
-            return this.getPopularManga(page);
+        query = (query || "").trim();
+        let remainingQuery = query;
+        let selectedGenres = [];
+        let selectedType = "";
+        let selectedStatus = "";
+
+        let lowerQuery = query.toLowerCase();
+        let sortedGenres = this.genres.slice().sort((a, b) => b.length - a.length);
+
+        for (let i = 0; i < sortedGenres.length; i++) {
+            let g = sortedGenres[i];
+            let lowerG = g.toLowerCase();
+            let patterns = ["genre:" + lowerG, "#" + lowerG];
+
+            for (let p = 0; p < patterns.length; p++) {
+                let pat = patterns[p];
+                let idx = lowerQuery.indexOf(pat);
+                if (idx !== -1) {
+                    selectedGenres.push(g);
+                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
+                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
+                }
+            }
         }
-        
+
+        let sortedFormats = this.formats.slice().sort((a, b) => b.length - a.length);
+        for (let i = 0; i < sortedFormats.length; i++) {
+            let f = sortedFormats[i];
+            let lowerF = f.toLowerCase();
+            let patterns = ["type:" + lowerF, "format:" + lowerF, "#" + lowerF];
+
+            for (let p = 0; p < patterns.length; p++) {
+                let pat = patterns[p];
+                let idx = lowerQuery.indexOf(pat);
+                if (idx !== -1) {
+                    selectedType = f;
+                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
+                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
+                }
+            }
+        }
+
+        let statuses = ["ongoing", "completed", "tamat"];
+        for (let i = 0; i < statuses.length; i++) {
+            let s = statuses[i];
+            let patterns = ["status:" + s, "#" + s];
+
+            for (let p = 0; p < patterns.length; p++) {
+                let pat = patterns[p];
+                let idx = lowerQuery.indexOf(pat);
+                if (idx !== -1) {
+                    selectedStatus = s === "tamat" ? "completed" : s;
+                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
+                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
+                }
+            }
+        }
+
+        remainingQuery = remainingQuery.replace(/\s+/g, " ").trim();
+
+        if (selectedGenres.length === 0 && remainingQuery) {
+            let g = this.findGenre(remainingQuery);
+            if (g) {
+                selectedGenres.push(g);
+                remainingQuery = "";
+            }
+        }
+
         let sessionHeaders = this.getApiSession(false) || {};
-        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik&name=" + encodeURIComponent(query);
+        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik";
+        
+        if (remainingQuery) {
+            url += "&name=" + encodeURIComponent(remainingQuery);
+        }
+        if (selectedGenres.length > 0) {
+            url += "&genre=" + encodeURIComponent(selectedGenres.join(","));
+        }
+        if (selectedType) {
+            url += "&type=" + encodeURIComponent(selectedType.toLowerCase());
+        }
+        if (selectedStatus) {
+            url += "&status=" + encodeURIComponent(selectedStatus);
+        }
+
         let html = this.getHtml(url, { headers: sessionHeaders });
         
         let items = [];
@@ -351,5 +472,29 @@ var source = {
         
         if (typeof log === 'function') log("getPageList final pages count: " + pages.length);
         return pages;
+    },
+
+    genres: [
+        "Action", "Adult", "Adventure", "Comedy", "Cooking", "Demon", "Drama", "Ecchi", 
+        "Fantasy", "Game", "Gender Bender", "Gore", "Isekai", "Mature", "Mecha", "Medical", 
+        "Military", "Musyc", "Mystery", "Parody", "Police", "Psychological", "Reincarnation", 
+        "Reverse Harem", "Rofan", "Romance", "School", "School Life", "Sci-fi", "Seinen", 
+        "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Slice of Life", "Sports", 
+        "Super Power", "Supernatural", "Thriler", "Tragedy", "Yaoi", "Yuri", "Webtoons", "zombies"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua"
+    ],
+
+    findGenre: function(name) {
+        if (!name) return null;
+        let lower = name.toLowerCase().trim();
+        for (let i = 0; i < this.genres.length; i++) {
+            if (this.genres[i].toLowerCase() === lower) {
+                return this.genres[i];
+            }
+        }
+        return null;
     }
 };
