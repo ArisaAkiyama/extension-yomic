@@ -260,9 +260,8 @@ var source = {
         return chapters;
     },
 
-    getPages: function(chapter) {
-        let url = chapter.url;
-        let html = this.getHtml(url);
+    getPageList: function(chapterUrl) {
+        let html = this.getHtml(chapterUrl);
         let data = this.extractNextData(html);
         
         if (!data || !data.props || !data.props.pageProps) {
@@ -279,10 +278,13 @@ var source = {
         // If imageSrc is empty, it needs to be fetched via API
         if (imageSrc.length === 0) {
             let sessionHeaders = this.getApiSession(true) || {};
-            // URL slug: /nano-machine-bahasa-indonesia/chapter/319 -> /komik/nano-machine-bahasa-indonesia/chapter/319/img/id
-            let idParts = chapter.id.split("/"); // ["", "nano-machine...", "chapter", "319"]
-            let slug = idParts[1];
-            let chNum = idParts[3];
+            // Parse slug and chapter number from chapterUrl
+            let match = chapterUrl.match(/\/([^/]+)\/chapter\/(?:old\/)?([^/]+)/);
+            if (!match) {
+                throw new Error("Invalid chapter URL format");
+            }
+            let slug = match[1];
+            let chNum = match[2];
             let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id;
             
             let imgHtml = this.getHtml(imgApiUrl, { headers: sessionHeaders });
@@ -300,15 +302,14 @@ var source = {
             throw new Error("No pages found or requires login.");
         }
         
-        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.online/softkomik" : "https://psy1.komik.im";
+        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.org/softkomik" : "https://psy1.komik.im";
         
         let pages = [];
         for (let i = 0; i < imageSrc.length; i++) {
             let img = imageSrc[i];
             if (img.startsWith("/")) img = img.substring(1);
-            pages.push({
-                url: imageBaseUrl + "/" + img
-            });
+            let imgUrl = imageBaseUrl + "/" + img;
+            pages.push(imgUrl + "|Referer=" + this.baseUrl + "/");
         }
         
         return pages;
