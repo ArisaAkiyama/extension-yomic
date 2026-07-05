@@ -66,33 +66,31 @@ var source = {
     },
 
     getLatestUpdates: function(page) {
-        let sessionHeaders = this.getApiSession(false) || {};
-        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik";
-        let html = this.getHtml(url, { headers: sessionHeaders });
-        
-        let items = [];
-        let totalPages = 1;
-        
-        if (html) {
-            try {
-                let json = JSON.parse(html);
-                if (json.data && Array.isArray(json.data)) {
-                    items = json.data.map(m => {
-                        let cover = m.gambar || "";
-                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
-                        return {
-                            id: "/" + m.title_slug,
-                            title: m.title,
-                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
-                            url: this.baseUrl + "/" + m.title_slug
-                        };
-                    });
-                }
-                totalPages = json.maxPage || 1;
-            } catch(e) {}
+        if (page > 1) {
+            return { items: [], totalPages: 1 };
         }
         
-        return { items: items, totalPages: totalPages };
+        let html = this.getHtml(this.baseUrl);
+        let items = [];
+        
+        if (html) {
+            let data = this.extractNextData(html);
+            if (data && data.props && data.props.pageProps && data.props.pageProps.data) {
+                let list = data.props.pageProps.data.updateNonProject || [];
+                items = list.map(m => {
+                    let cover = m.gambar || "";
+                    if (cover && cover.startsWith("/")) cover = cover.substring(1);
+                    return {
+                        id: "/" + m.title_slug,
+                        title: m.title,
+                        thumbnailUrl: this.coverBaseUrl + "/" + cover,
+                        url: this.baseUrl + "/" + m.title_slug
+                    };
+                });
+            }
+        }
+        
+        return { items: items, totalPages: 1 };
     },
 
     getMangaList: function(page, status, genre, type) {
