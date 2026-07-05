@@ -261,23 +261,30 @@ var source = {
     },
 
     getPageList: function(chapterUrl) {
+        if (typeof log === 'function') log("getPageList started for: " + chapterUrl);
         let html = this.getHtml(chapterUrl);
+        if (typeof log === 'function') log("getPageList html length: " + (html ? html.length : 0));
         let data = this.extractNextData(html);
+        if (typeof log === 'function') log("getPageList nextData: " + (data ? "found" : "null"));
         
         if (!data || !data.props || !data.props.pageProps) {
             throw new Error("No pages found");
         }
         
         let cData = data.props.pageProps.data;
+        if (typeof log === 'function') log("getPageList cData: " + (cData ? "found" : "null"));
         if (!cData) {
             throw new Error("No chapter data found");
         }
         
         let imageSrc = cData.imageSrc || [];
+        if (typeof log === 'function') log("getPageList initial imageSrc count: " + imageSrc.length);
         
         // If imageSrc is empty, it needs to be fetched via API
         if (imageSrc.length === 0) {
             let sessionHeaders = this.getApiSession(true) || {};
+            if (typeof log === 'function') log("getPageList sessionHeaders: " + JSON.stringify(sessionHeaders));
+            
             // Parse slug and chapter number from chapterUrl
             let match = chapterUrl.match(/\/([^/]+)\/chapter\/(?:old\/)?([^/]+)/);
             if (!match) {
@@ -286,15 +293,19 @@ var source = {
             let slug = match[1];
             let chNum = match[2];
             let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id;
+            if (typeof log === 'function') log("getPageList fetching images from API: " + imgApiUrl);
             
             let imgHtml = this.getHtml(imgApiUrl, { headers: sessionHeaders });
+            if (typeof log === 'function') log("getPageList imgHtml length: " + (imgHtml ? imgHtml.length : 0));
             if (imgHtml) {
                 try {
                     let imgData = JSON.parse(imgHtml);
                     if (imgData && imgData.imageSrc) {
                         imageSrc = imgData.imageSrc;
                     }
-                } catch(e) {}
+                } catch(e) {
+                    if (typeof log === 'function') log("getPageList JSON parse error: " + e.message);
+                }
             }
         }
         
@@ -302,7 +313,9 @@ var source = {
             throw new Error("No pages found or requires login.");
         }
         
+        if (typeof log === 'function') log("getPageList storageInter2: " + cData.storageInter2);
         let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.org/softkomik" : "https://psy1.komik.im";
+        if (typeof log === 'function') log("getPageList imageBaseUrl: " + imageBaseUrl);
         
         let pages = [];
         for (let i = 0; i < imageSrc.length; i++) {
@@ -312,6 +325,7 @@ var source = {
             pages.push(imgUrl + "|Referer=" + this.baseUrl + "/");
         }
         
+        if (typeof log === 'function') log("getPageList final pages count: " + pages.length);
         return pages;
     }
 };
