@@ -172,9 +172,9 @@ var source = {
             }
         });
         
-        // If failed (e.g. no cookies yet), load homepage first to populate cookies and retry
+        // If failed (e.g. no cookies yet), load /komik/list first to populate the correct cookies and retry
         if (!html || !html.includes("token")) {
-            this.getHtml(this.baseUrl);
+            this.getHtml(this.baseUrl + "/komik/list");
             html = this.getHtml(url, {
                 headers: {
                     "Accept": "application/json",
