@@ -127,7 +127,7 @@ var source = {
         }
         
         let sessionHeaders = this.getApiSession(false) || {};
-        let url = this.apiUrl + "/search?name=" + encodeURIComponent(query);
+        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik&name=" + encodeURIComponent(query);
         let html = this.getHtml(url, { headers: sessionHeaders });
         
         let items = [];
@@ -138,16 +138,12 @@ var source = {
                 let json = JSON.parse(html);
                 if (json.data && Array.isArray(json.data)) {
                     items = json.data.map(m => {
-                        let thumb = "";
-                        if (m.gambar) {
-                            let cover = m.gambar;
-                            if (cover.startsWith("/")) cover = cover.substring(1);
-                            thumb = this.coverBaseUrl + "/" + cover;
-                        }
+                        let cover = m.gambar || "";
+                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
                         return {
                             id: "/" + m.title_slug,
                             title: m.title,
-                            thumbnailUrl: thumb,
+                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
                             url: this.baseUrl + "/" + m.title_slug
                         };
                     });
