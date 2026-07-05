@@ -66,19 +66,12 @@ var source = {
     },
 
     getLatestUpdates: function(page) {
-        if (page > 1) {
-            return { items: [], totalPages: 1 };
-        }
-        
-        let html = this.getHtml(this.baseUrl);
-        let items = [];
-        
-        if (html) {
-            let data = this.extractNextData(html);
-            if (data && data.props && data.props.pageProps && data.props.pageProps.data) {
-                let list = data.props.pageProps.data.updateNonProject || [];
-                items = list.map(m => {
-                    let cover = m.gambar || "";
+        if (page === 1) {
+            let hp = this.getHtml(this.baseUrl);
+            let hData = this.extractNextData(hp);
+            if (hData && hData.props && hData.props.pageProps && hData.props.pageProps.updateNonProject) {
+                let items = hData.props.pageProps.updateNonProject.map(m => {
+                    let cover = m.gambar;
                     if (cover && cover.startsWith("/")) cover = cover.substring(1);
                     return {
                         id: "/" + m.title_slug,
@@ -87,10 +80,37 @@ var source = {
                         url: this.baseUrl + "/" + m.title_slug
                     };
                 });
+                return { items: items, totalPages: 1 };
             }
         }
         
-        return { items: items, totalPages: 1 };
+        let sessionHeaders = this.getApiSession(false) || {};
+        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik";
+        let html = this.getHtml(url, { headers: sessionHeaders });
+        
+        let items = [];
+        let totalPages = 1;
+        
+        if (html) {
+            try {
+                let json = JSON.parse(html);
+                if (json.data && Array.isArray(json.data)) {
+                    items = json.data.map(m => {
+                        let cover = m.gambar || "";
+                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
+                        return {
+                            id: "/" + m.title_slug,
+                            title: m.title,
+                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
+                            url: this.baseUrl + "/" + m.title_slug
+                        };
+                    });
+                }
+                totalPages = json.maxPage || 1;
+            } catch(e) {}
+        }
+        
+        return { items: items, totalPages: totalPages };
     },
 
     getMangaList: function(page, status, genre, type) {
@@ -342,13 +362,24 @@ var source = {
                         "X-Token": this.cleanB64(json.token),
                         "X-Sign": json.sign.substring(0, 64)
                     };
-                    if (token) headers["Authorization"] = token;
+                    if (token) {
+                        headers["Authorization"] = token;
+                        if (token.startsWith("Bearer ")) {
+                            headers["Cookie"] = "tokkey=" + token.substring(7);
+                        }
+                    }
                     return headers;
                 }
             } catch(e) {}
         }
         
-        if (token) return { "Authorization": token };
+        if (token) {
+            let fallbackHeaders = { "Authorization": token };
+            if (token.startsWith("Bearer ")) {
+                fallbackHeaders["Cookie"] = "tokkey=" + token.substring(7);
+            }
+            return fallbackHeaders;
+        }
         return null; // fallback to unauthenticated or cache
     },
 
