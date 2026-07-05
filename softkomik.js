@@ -175,22 +175,16 @@ var source = {
                 "X-Requested-With": "XMLHttpRequest"
             }
         });
-        if (typeof log === 'function') log("session API (" + url + ") html length: " + (html ? html.length : 0));
         if (html) {
             try {
                 let json = JSON.parse(html);
                 if (json.token && json.sign) {
-                    if (typeof log === 'function') log("session API successfully parsed tokens");
                     return {
                         "X-Token": this.cleanB64(json.token),
                         "X-Sign": json.sign.substring(0, 64)
                     };
-                } else {
-                    if (typeof log === 'function') log("session API parsed JSON but missing token/sign");
                 }
-            } catch(e) {
-                if (typeof log === 'function') log("session API JSON parse failed: " + e.message);
-            }
+            } catch(e) {}
         }
         return null; // fallback to unauthenticated or cache
     },
