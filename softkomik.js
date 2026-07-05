@@ -171,6 +171,19 @@ var source = {
                 "X-Requested-With": "XMLHttpRequest"
             }
         });
+        
+        // If failed (e.g. no cookies yet), load homepage first to populate cookies and retry
+        if (!html || !html.includes("token")) {
+            this.getHtml(this.baseUrl);
+            html = this.getHtml(url, {
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+        }
+        
         if (html) {
             try {
                 let json = JSON.parse(html);
