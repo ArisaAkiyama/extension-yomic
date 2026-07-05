@@ -283,7 +283,38 @@ var source = {
         return cleanStr;
     },
     
+    authToken: null,
+
+    autoLogin: function() {
+        if (this.authToken) return this.authToken;
+        
+        let url = "https://softkomik.co/api/login";
+        let payload = JSON.stringify({ email: "yomic12@gmail.com", password: "arisa123!" });
+        let html = this.getHtml(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: payload
+        });
+        
+        if (html) {
+            try {
+                let json = JSON.parse(html);
+                if (json.token) {
+                    this.authToken = "Bearer " + json.token;
+                    if (typeof log === 'function') log("AutoLogin Success");
+                    return this.authToken;
+                }
+            } catch(e) {}
+        }
+        return null;
+    },
+
     getApiSession: function(isChapterImage) {
+        let token = this.autoLogin();
+        
         let url = isChapterImage ? this.sessionImageUrl : this.sessionListUrl;
         let html = this.getHtml(url, {
             headers: {
@@ -309,13 +340,17 @@ var source = {
             try {
                 let json = JSON.parse(html);
                 if (json.token && json.sign) {
-                    return {
+                    let headers = {
                         "X-Token": this.cleanB64(json.token),
                         "X-Sign": json.sign.substring(0, 64)
                     };
+                    if (token) headers["Authorization"] = token;
+                    return headers;
                 }
             } catch(e) {}
         }
+        
+        if (token) return { "Authorization": token };
         return null; // fallback to unauthenticated or cache
     },
 
