@@ -271,7 +271,8 @@ var source = {
             throw new Error("No pages found");
         }
         
-        let cData = data.props.pageProps.data;
+        let pageData = data.props.pageProps.data;
+        let cData = pageData ? pageData.data : null;
         if (typeof log === 'function') log("getPageList cData: " + (cData ? "found" : "null"));
         if (!cData) {
             throw new Error("No chapter data found");
