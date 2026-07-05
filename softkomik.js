@@ -465,8 +465,13 @@ var source = {
         let pages = [];
         for (let i = 0; i < imageSrc.length; i++) {
             let img = imageSrc[i];
-            if (img.startsWith("/")) img = img.substring(1);
-            let imgUrl = imageBaseUrl + "/" + img;
+            let imgUrl = "";
+            if (img.startsWith("http://") || img.startsWith("https://")) {
+                imgUrl = img;
+            } else {
+                if (img.startsWith("/")) img = img.substring(1);
+                imgUrl = imageBaseUrl + "/" + img;
+            }
             pages.push(imgUrl + "|Referer=" + this.baseUrl + "/");
         }
         
