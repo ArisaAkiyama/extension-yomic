@@ -43,6 +43,19 @@ var source = {
         return this.getMangaPage(url);
     },
 
+    toSafeArray: function(val) {
+        if (!val) return [];
+        if (Array.isArray(val)) return val;
+        if (typeof val === "object" && typeof val.length === "number") {
+            let res = [];
+            for (let i = 0; i < val.length; i++) {
+                res.push(String(val[i]));
+            }
+            return res;
+        }
+        return [String(val)];
+    },
+
     getMangaList: function(page, status, genre, type) {
         page = Math.max(1, page || 1);
         let params = [];
@@ -60,26 +73,24 @@ var source = {
             params.push("status[]=discontinued");
         }
 
-        if (genre) {
-            let arr = Array.isArray(genre) ? genre : [genre];
-            for (let i = 0; i < arr.length; i++) {
-                if (arr[i]) {
-                    let g = arr[i].trim().toLowerCase().replace(/\s+/g, "-");
-                    if (g) {
-                        params.push("genres[]=" + encodeURIComponent(g));
-                    }
+        let genreArr = this.toSafeArray(genre);
+        for (let i = 0; i < genreArr.length; i++) {
+            let item = genreArr[i];
+            if (item && item !== "undefined") {
+                let g = item.trim().toLowerCase().replace(/\s+/g, "-");
+                if (g) {
+                    params.push("genres[]=" + encodeURIComponent(g));
                 }
             }
         }
 
-        if (type) {
-            let arr = Array.isArray(type) ? type : [type];
-            for (let i = 0; i < arr.length; i++) {
-                if (arr[i]) {
-                    let t = arr[i].trim().toLowerCase().replace(/\s+/g, "-");
-                    if (t) {
-                        params.push("type[]=" + encodeURIComponent(t));
-                    }
+        let typeArr = this.toSafeArray(type);
+        for (let i = 0; i < typeArr.length; i++) {
+            let item = typeArr[i];
+            if (item && item !== "undefined") {
+                let t = item.trim().toLowerCase().replace(/\s+/g, "-");
+                if (t) {
+                    params.push("type[]=" + encodeURIComponent(t));
                 }
             }
         }
