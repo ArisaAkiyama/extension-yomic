@@ -20,7 +20,7 @@ var source = {
     ],
 
     formats: [
-        "Manga", "Manhwa", "Manhua", "One-Shot"
+        "Manga", "Manhwa", "Manhua"
     ],
 
     getPopularManga: function(page) {
@@ -64,13 +64,13 @@ var source = {
         params.push("limit=50");
 
         if (status === 1) {
-            params.push("status[]=releasing");
+            params.push("statuses[]=releasing");
         } else if (status === 2) {
-            params.push("status[]=finished");
+            params.push("statuses[]=finished");
         } else if (status === 3) {
-            params.push("status[]=on_hiatus");
+            params.push("statuses[]=on_hiatus");
         } else if (status === 4) {
-            params.push("status[]=discontinued");
+            params.push("statuses[]=discontinued");
         }
 
         let genreArr = this.toSafeArray(genre);
@@ -79,7 +79,7 @@ var source = {
             if (item && item !== "undefined") {
                 let g = item.trim().toLowerCase().replace(/\s+/g, "-");
                 if (g) {
-                    params.push("genres[]=" + encodeURIComponent(g));
+                    params.push("genres_in[]=" + encodeURIComponent(g));
                 }
             }
         }
@@ -90,7 +90,7 @@ var source = {
             if (item && item !== "undefined") {
                 let t = item.trim().toLowerCase().replace(/\s+/g, "-");
                 if (t) {
-                    params.push("type[]=" + encodeURIComponent(t));
+                    params.push("types[]=" + encodeURIComponent(t));
                 }
             }
         }
