@@ -10,6 +10,19 @@ var source = {
     isNsfw: false,
     isHasMorePages: true,
 
+    genres: [
+        "Action", "Adventure", "Avant Garde", "Boys Love", "Comedy", "Demons", "Drama", "Ecchi",
+        "Fantasy", "Girls Love", "Gourmet", "Harem", "Historical", "Horror", "Isekai", "Iyashikei",
+        "Josei", "Martial Arts", "Mecha", "Medical", "Military", "Music", "Mystery", "Parody",
+        "Psychological", "Reverse Harem", "Romance", "School", "Sci-Fi", "Seinen", "Shoujo",
+        "Shoujo Ai", "Shounen", "Shounen Ai", "Slice of Life", "Space", "Sports", "Super Power",
+        "Supernatural", "Suspense", "Thriller", "Vampire", "Video Games", "Villainess"
+    ],
+
+    formats: [
+        "Manga", "Manhwa", "Manhua", "One-Shot"
+    ],
+
     getPopularManga: function(page) {
         page = Math.max(1, page || 1);
         let url = this.baseUrl + "/api/titles?order[views_30d]=desc&page=" + page + "&limit=50";
@@ -32,7 +45,46 @@ var source = {
 
     getMangaList: function(page, status, genre, type) {
         page = Math.max(1, page || 1);
-        let url = this.baseUrl + "/api/titles?order[views_30d]=desc&page=" + page + "&limit=50";
+        let params = [];
+        params.push("order[views_30d]=desc");
+        params.push("page=" + page);
+        params.push("limit=50");
+
+        if (status === 1) {
+            params.push("status[]=releasing");
+        } else if (status === 2) {
+            params.push("status[]=finished");
+        } else if (status === 3) {
+            params.push("status[]=on_hiatus");
+        } else if (status === 4) {
+            params.push("status[]=discontinued");
+        }
+
+        if (genre) {
+            let arr = Array.isArray(genre) ? genre : [genre];
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i]) {
+                    let g = arr[i].trim().toLowerCase().replace(/\s+/g, "-");
+                    if (g) {
+                        params.push("genres[]=" + encodeURIComponent(g));
+                    }
+                }
+            }
+        }
+
+        if (type) {
+            let arr = Array.isArray(type) ? type : [type];
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i]) {
+                    let t = arr[i].trim().toLowerCase().replace(/\s+/g, "-");
+                    if (t) {
+                        params.push("type[]=" + encodeURIComponent(t));
+                    }
+                }
+            }
+        }
+
+        let url = this.baseUrl + "/api/titles?" + params.join("&");
         return this.getMangaPage(url);
     },
 
