@@ -183,10 +183,7 @@ var source = {
 
         let pages = [];
         for (let i = 0; i < json.data.pages.length; i++) {
-            pages.push({
-                index: i,
-                imageUrl: json.data.pages[i].url + "|Referer=https://mangafire.to/&Origin=https://mangafire.to"
-            });
+            pages.push(json.data.pages[i].url + "|Referer=https://mangafire.to/&Origin=https://mangafire.to");
         }
 
         return pages;
