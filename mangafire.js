@@ -73,13 +73,66 @@ var source = {
             params.push("statuses[]=discontinued");
         }
 
+        let genreIds = {
+            "action": 1,
+            "adventure": 2,
+            "avant garde": 3,
+            "boys love": 4,
+            "comedy": 5,
+            "demons": 6,
+            "drama": 7,
+            "ecchi": 8,
+            "fantasy": 9,
+            "girls love": 10,
+            "gourmet": 11,
+            "harem": 12,
+            "historical": 13,
+            "horror": 14,
+            "isekai": 15,
+            "iyashikei": 16,
+            "josei": 17,
+            "martial arts": 18,
+            "mecha": 19,
+            "medical": 20,
+            "military": 21,
+            "music": 22,
+            "mystery": 23,
+            "parody": 24,
+            "psychological": 25,
+            "reverse harem": 26,
+            "romance": 27,
+            "school": 28,
+            "sci-fi": 29,
+            "seinen": 30,
+            "shoujo": 31,
+            "shoujo ai": 32,
+            "shounen": 33,
+            "shounen ai": 34,
+            "slice of life": 35,
+            "space": 36,
+            "sports": 37,
+            "super power": 38,
+            "supernatural": 39,
+            "suspense": 40,
+            "thriller": 41,
+            "vampire": 42,
+            "video games": 43,
+            "villainess": 44
+        };
+
         let genreArr = this.toSafeArray(genre);
         for (let i = 0; i < genreArr.length; i++) {
             let item = genreArr[i];
             if (item && item !== "undefined") {
-                let g = item.trim().toLowerCase().replace(/\s+/g, "-");
-                if (g) {
-                    params.push("genres_in[]=" + encodeURIComponent(g));
+                let nameLower = item.trim().toLowerCase();
+                let gId = genreIds[nameLower];
+                if (gId) {
+                    params.push("genres_in[]=" + gId);
+                } else {
+                    let g = nameLower.replace(/\s+/g, "-");
+                    if (g) {
+                        params.push("genres_in[]=" + encodeURIComponent(g));
+                    }
                 }
             }
         }
