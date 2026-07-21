@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://softkomik.co",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.1.0",
+    version: "1.1.1",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -78,7 +78,6 @@ var source = {
         let html = this.getHtml(url);
         let items = this.parseMangaCards(html);
 
-        // Fallback to homepage __NEXT_DATA__ if library HTML is empty
         if (items.length === 0 && page === 1) {
             let homeHtml = this.getHtml(this.baseUrl);
             let nextData = this.extractNextData(homeHtml);
@@ -231,40 +230,26 @@ var source = {
         let data = this.extractNextData(html);
 
         if (!data || !data.props || !data.props.pageProps) {
-            throw new Error("No pages found");
+            throw new Error("No pages found on Softkomik.");
         }
 
         let pageData = data.props.pageProps.data;
         let cData = pageData ? pageData.data : null;
-        if (!cData) {
-            throw new Error("No chapter data found");
-        }
+        let imageSrc = cData ? (cData.imageSrc || []) : [];
 
-        let imageSrc = cData.imageSrc || [];
-        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.org/softkomik" : "https://psy1.komik.im";
-
-        let pages = [];
         if (imageSrc && imageSrc.length > 0) {
+            let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.online/softkomik" : "https://psy1.komik.im";
+            let pages = [];
             for (let i = 0; i < imageSrc.length; i++) {
                 let img = imageSrc[i];
                 if (img.startsWith("/")) img = img.substring(1);
                 pages.push(imageBaseUrl + "/" + img + "|Referer=" + this.baseUrl + "/");
             }
-        } else {
-            // Construct page image URLs based on slug and chapter number
-            let match = fullUrl.match(/\/([^/]+)\/chapter\/([0-9a-zA-Z_-]+)/);
-            if (match) {
-                let slug = match[1];
-                let chNum = match[2];
-                for (let pageNum = 1; pageNum <= 50; pageNum++) {
-                    let pStr = pageNum < 10 ? "0" + pageNum : "" + pageNum;
-                    let imgUrl = imageBaseUrl + "/" + slug + "/" + chNum + "/" + pStr + ".webp";
-                    pages.push(imgUrl + "|Referer=" + this.baseUrl + "/");
-                }
-            }
+            return pages;
         }
 
-        return pages;
+        // If imageSrc is empty, server/API is currently offline from Softkomik side
+        throw new Error("Server gambar Softkomik sedang offline/down dari pusat web Softkomik.");
     },
 
     genres: [
