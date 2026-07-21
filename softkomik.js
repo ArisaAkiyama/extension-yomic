@@ -280,7 +280,8 @@ var source = {
             let cleanSign = rawSign.indexOf('|') !== -1 ? rawSign.substring(0, rawSign.indexOf('|')) : rawSign.substring(0, 64);
 
             // Image API call — with X-Token and X-Sign headers
-            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id;
+            // NOTE: endpoint is /imgs/ (plural) not /img/
+            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id;
             let imgBody = this.getHtml(imgApiUrl, {
                 headers: {
                     "X-Token": cleanToken,
@@ -295,7 +296,10 @@ var source = {
 
             try {
                 let imgJson = JSON.parse(imgBody);
-                if (imgJson && imgJson.imageSrc) {
+                // Response wraps data in _doc.imageSrc (Mongoose document structure)
+                if (imgJson && imgJson._doc && imgJson._doc.imageSrc) {
+                    imageSrc = imgJson._doc.imageSrc;
+                } else if (imgJson && imgJson.imageSrc) {
                     imageSrc = imgJson.imageSrc;
                 }
             } catch(e) {}
@@ -305,16 +309,17 @@ var source = {
             throw new Error("Gambar tidak tersedia untuk chapter ini di Softkomik.");
         }
 
-        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.online/softkomik" : "https://psy1.komik.im";
+        // psy1.komik.im is the primary CDN; relative paths start with 'img-file/'
         let pages = [];
         for (let i = 0; i < imageSrc.length; i++) {
             let img = imageSrc[i];
             if (img.startsWith("/")) img = img.substring(1);
-            // If it's a full URL (like from psy1.komik.im/img-file/...)
+            // If it's a full URL
             if (img.startsWith("http")) {
                 pages.push(img + "|Referer=" + this.baseUrl + "/");
             } else {
-                pages.push(imageBaseUrl + "/" + img + "|Referer=" + this.baseUrl + "/");
+                // Relative path — prefix with psy1.komik.im
+                pages.push("https://psy1.komik.im/" + img + "|Referer=" + this.baseUrl + "/");
             }
         }
 
