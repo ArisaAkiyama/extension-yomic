@@ -1,23 +1,19 @@
 var source = {
     name: "Softkomik",
     baseUrl: "https://softkomik.co",
-    apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.0.0",
-    description: "Softkomik Indonesian extension. Note: Softkomik uses aggressive anti-scraping with rotating session APIs.",
+    version: "1.1.0",
+    description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: true,
     pageSize: 24,
-    
-    // Fallback known session endpoints (they might change)
-    sessionListUrl: "https://softkomik.co/api/session/amsnuy",
-    sessionImageUrl: "https://softkomik.co/api/session/chapter",
 
     extractNextData: function(html) {
+        if (!html) return null;
         let match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
         if (match && match.length > 1) {
             try {
@@ -29,7 +25,12 @@ var source = {
 
     getHtml: function(url, options) {
         try {
-            let response = fetch(url, options);
+            let opts = options || {};
+            if (!opts.headers) opts.headers = {};
+            if (!opts.headers['User-Agent']) {
+                opts.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+            }
+            let response = fetch(url, opts);
             if (response && response.status >= 200 && response.status < 300) {
                 return response.body;
             }
@@ -37,350 +38,106 @@ var source = {
         return "";
     },
 
-    parseMangaList: function(html) {
-        let data = this.extractNextData(html);
-        if (!data || !data.props || !data.props.pageProps || !data.props.pageProps.libData) {
-            return { items: [], totalPages: 1 };
+    parseMangaCards: function(html) {
+        if (!html) return [];
+        let items = [];
+        let blocks = html.split('item-komik');
+
+        for (let i = 1; i < blocks.length; i++) {
+            let b = blocks[i];
+            let slugMatch = b.match(/href="\/([a-z0-9-]+-bahasa-indonesia)"/i) || b.match(/href="\/([a-z0-9-]+)"/i);
+            let altMatch = b.match(/alt="([^"]+)"/i);
+            let coverMatch = b.match(/url\(&quot;(https:[^&]+)&quot;\)/i) || b.match(/url=(https%3A%2F%2F[^&"]+)/i);
+
+            if (slugMatch && altMatch) {
+                let slug = slugMatch[1];
+                let title = altMatch[1].trim();
+                let cover = coverMatch ? (coverMatch[1].startsWith('http') ? coverMatch[1] : decodeURIComponent(coverMatch[1])) : "";
+                
+                if (!cover) {
+                    cover = this.coverBaseUrl + "/image-cover/" + slug + ".jpeg";
+                }
+
+                items.push({
+                    id: "/" + slug,
+                    title: title,
+                    thumbnailUrl: cover,
+                    url: this.baseUrl + "/" + slug
+                });
+            }
         }
-        let libData = data.props.pageProps.libData;
-        if (!libData.data) {
-            return { items: [], totalPages: 1 };
-        }
-        
-        let items = libData.data.map(m => {
-            let cover = m.gambar;
-            if (cover && cover.startsWith("/")) cover = cover.substring(1);
-            return {
-                id: "/" + m.title_slug,
-                title: m.title,
-                thumbnailUrl: this.coverBaseUrl + "/" + cover,
-                url: this.baseUrl + "/" + m.title_slug
-            };
-        });
-        
-        return { items: items, totalPages: libData.maxPage || 1 };
+        return items;
     },
 
     getPopularManga: function(page) {
-        return this.getMangaList(page);
+        return this.getMangaList(page, 0, null, null);
     },
 
     getLatestUpdates: function(page) {
-        if (page === 1) {
-            let hp = this.getHtml(this.baseUrl);
-            let hData = this.extractNextData(hp);
-            if (hData && hData.props && hData.props.pageProps && hData.props.pageProps.updateNonProject) {
-                let items = hData.props.pageProps.updateNonProject.map(m => {
-                    let cover = m.gambar;
+        let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
+        let html = this.getHtml(url);
+        let items = this.parseMangaCards(html);
+
+        // Fallback to homepage __NEXT_DATA__ if library HTML is empty
+        if (items.length === 0 && page === 1) {
+            let homeHtml = this.getHtml(this.baseUrl);
+            let nextData = this.extractNextData(homeHtml);
+            if (nextData && nextData.props && nextData.props.pageProps && nextData.props.pageProps.data && nextData.props.pageProps.data.newKomik) {
+                let list = nextData.props.pageProps.data.newKomik;
+                items = list.map(m => {
+                    let cover = m.gambar || "";
                     if (cover && cover.startsWith("/")) cover = cover.substring(1);
                     return {
-                        id: "/" + m.title_slug,
+                        id: "/" + (m.title_slug || m.link),
                         title: m.title,
-                        thumbnailUrl: this.coverBaseUrl + "/" + cover,
-                        url: this.baseUrl + "/" + m.title_slug
+                        thumbnailUrl: cover.startsWith("http") ? cover : (this.coverBaseUrl + "/" + cover),
+                        url: this.baseUrl + "/" + (m.title_slug || m.link)
                     };
                 });
-                return { items: items, totalPages: 1 };
             }
         }
-        
-        let sessionHeaders = this.getApiSession(false) || {};
-        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik";
-        let html = this.getHtml(url, { headers: sessionHeaders });
-        
-        let items = [];
-        let totalPages = 1;
-        
-        if (html) {
-            try {
-                let json = JSON.parse(html);
-                if (json.data && Array.isArray(json.data)) {
-                    items = json.data.map(m => {
-                        let cover = m.gambar || "";
-                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
-                        return {
-                            id: "/" + m.title_slug,
-                            title: m.title,
-                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
-                            url: this.baseUrl + "/" + m.title_slug
-                        };
-                    });
-                }
-                totalPages = json.maxPage || 1;
-            } catch(e) {}
-        }
-        
-        return { items: items, totalPages: totalPages };
+
+        return { items: items, totalPages: 100 };
     },
 
     getMangaList: function(page, status, genre, type) {
-        let sessionHeaders = this.getApiSession(false) || {};
-        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=popular";
-        
+        let url = this.baseUrl + "/komik/library?page=" + page;
+
         if (status === 1) {
             url += "&status=ongoing";
         } else if (status === 2) {
             url += "&status=tamat";
+        } else {
+            url += "&sortBy=popular";
         }
-        
-        if (genre) {
-            let arr = [];
-            if (Array.isArray(genre)) {
-                arr = genre;
-            } else if (genre.length !== undefined && typeof genre !== 'string') {
-                for (let i = 0; i < genre.length; i++) {
-                    arr.push(genre[i]);
-                }
-            } else {
-                arr = [genre];
-            }
-            if (arr.length > 0) {
-                url += "&genre=" + encodeURIComponent(arr.join(","));
-            }
-        }
-        
+
         if (type) {
-            let arr = [];
-            if (Array.isArray(type)) {
-                arr = type;
-            } else if (type.length !== undefined && typeof type !== 'string') {
-                for (let i = 0; i < type.length; i++) {
-                    arr.push(type[i]);
-                }
-            } else {
-                arr = [type];
-            }
-            if (arr.length > 0) {
-                url += "&type=" + encodeURIComponent(arr[0].toLowerCase());
-            }
+            let tStr = Array.isArray(type) ? type[0] : String(type);
+            url += "&type=" + encodeURIComponent(tStr.toLowerCase());
         }
 
-        let html = this.getHtml(url, { headers: sessionHeaders });
-        
-        let items = [];
-        let totalPages = 1;
-        
-        if (html) {
-            try {
-                let json = JSON.parse(html);
-                if (json.data && Array.isArray(json.data)) {
-                    items = json.data.map(m => {
-                        let cover = m.gambar || "";
-                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
-                        return {
-                            id: "/" + m.title_slug,
-                            title: m.title,
-                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
-                            url: this.baseUrl + "/" + m.title_slug
-                        };
-                    });
-                }
-                totalPages = json.maxPage || 1;
-            } catch(e) {}
+        if (genre) {
+            let gStr = Array.isArray(genre) ? genre.join(",") : String(genre);
+            url += "&genre=" + encodeURIComponent(gStr);
         }
-        
-        return { items: items, totalPages: totalPages };
+
+        let html = this.getHtml(url);
+        let items = this.parseMangaCards(html);
+
+        return { items: items, totalPages: 100 };
     },
 
-    getSearchManga: function(query, page) {
-        query = (query || "").trim();
-        let remainingQuery = query;
-        let selectedGenres = [];
-        let selectedType = "";
-        let selectedStatus = "";
+    searchManga: function(query, page) {
+        if (!query) return this.getPopularManga(page);
 
-        let lowerQuery = query.toLowerCase();
-        let sortedGenres = this.genres.slice().sort((a, b) => b.length - a.length);
+        let url = this.baseUrl + "/komik/library?page=" + page + "&sortBy=newKomik";
+        let html = this.getHtml(url);
+        let items = this.parseMangaCards(html);
 
-        for (let i = 0; i < sortedGenres.length; i++) {
-            let g = sortedGenres[i];
-            let lowerG = g.toLowerCase();
-            let patterns = ["genre:" + lowerG, "#" + lowerG];
+        let q = query.toLowerCase().trim();
+        let filtered = items.filter(m => m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
 
-            for (let p = 0; p < patterns.length; p++) {
-                let pat = patterns[p];
-                let idx = lowerQuery.indexOf(pat);
-                if (idx !== -1) {
-                    selectedGenres.push(g);
-                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
-                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
-                }
-            }
-        }
-
-        let sortedFormats = this.formats.slice().sort((a, b) => b.length - a.length);
-        for (let i = 0; i < sortedFormats.length; i++) {
-            let f = sortedFormats[i];
-            let lowerF = f.toLowerCase();
-            let patterns = ["type:" + lowerF, "format:" + lowerF, "#" + lowerF];
-
-            for (let p = 0; p < patterns.length; p++) {
-                let pat = patterns[p];
-                let idx = lowerQuery.indexOf(pat);
-                if (idx !== -1) {
-                    selectedType = f;
-                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
-                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
-                }
-            }
-        }
-
-        let statuses = ["ongoing", "completed", "tamat"];
-        for (let i = 0; i < statuses.length; i++) {
-            let s = statuses[i];
-            let patterns = ["status:" + s, "#" + s];
-
-            for (let p = 0; p < patterns.length; p++) {
-                let pat = patterns[p];
-                let idx = lowerQuery.indexOf(pat);
-                if (idx !== -1) {
-                    selectedStatus = (s === "completed" || s === "tamat") ? "tamat" : s;
-                    remainingQuery = remainingQuery.substring(0, idx) + " " + remainingQuery.substring(idx + pat.length);
-                    lowerQuery = lowerQuery.substring(0, idx) + " " + lowerQuery.substring(idx + pat.length);
-                }
-            }
-        }
-
-        remainingQuery = remainingQuery.replace(/\s+/g, " ").trim();
-
-        if (selectedGenres.length === 0 && remainingQuery) {
-            let g = this.findGenre(remainingQuery);
-            if (g) {
-                selectedGenres.push(g);
-                remainingQuery = "";
-            }
-        }
-
-        let sessionHeaders = this.getApiSession(false) || {};
-        let url = this.apiUrl + "/komik?page=" + page + "&limit=" + this.pageSize + "&sortBy=newKomik";
-        
-        if (remainingQuery) {
-            url += "&name=" + encodeURIComponent(remainingQuery);
-        }
-        if (selectedGenres.length > 0) {
-            url += "&genre=" + encodeURIComponent(selectedGenres.join(","));
-        }
-        if (selectedType) {
-            url += "&type=" + encodeURIComponent(selectedType.toLowerCase());
-        }
-        if (selectedStatus) {
-            url += "&status=" + encodeURIComponent(selectedStatus);
-        }
-
-        let html = this.getHtml(url, { headers: sessionHeaders });
-        
-        let items = [];
-        let totalPages = 1;
-        
-        if (html) {
-            try {
-                let json = JSON.parse(html);
-                if (json.data && Array.isArray(json.data)) {
-                    items = json.data.map(m => {
-                        let cover = m.gambar || "";
-                        if (cover && cover.startsWith("/")) cover = cover.substring(1);
-                        return {
-                            id: "/" + m.title_slug,
-                            title: m.title,
-                            thumbnailUrl: this.coverBaseUrl + "/" + cover,
-                            url: this.baseUrl + "/" + m.title_slug
-                        };
-                    });
-                }
-                totalPages = json.maxPage || 1;
-            } catch(e) {}
-        }
-        
-        return { items: items, totalPages: totalPages };
-    },
-    
-    cleanB64: function(str) {
-        let cleanStr = str.split('=')[0];
-        let padding = (4 - (cleanStr.length % 4)) % 4;
-        for(let i = 0; i < padding; i++) cleanStr += "=";
-        return cleanStr;
-    },
-    
-    authToken: null,
-
-    autoLogin: function() {
-        if (this.authToken) return this.authToken;
-        
-        let url = "https://softkomik.co/api/login";
-        let payload = JSON.stringify({ email: "yomic12@gmail.com", password: "arisa123!" });
-        let html = this.getHtml(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: payload
-        });
-        
-        if (html) {
-            try {
-                let json = JSON.parse(html);
-                if (json.token) {
-                    this.authToken = "Bearer " + json.token;
-                    if (typeof log === 'function') log("AutoLogin Success");
-                    return this.authToken;
-                }
-            } catch(e) {}
-        }
-        return null;
-    },
-
-    getApiSession: function(isChapterImage) {
-        let token = this.autoLogin();
-        
-        let url = isChapterImage ? this.sessionImageUrl : this.sessionListUrl;
-        let html = this.getHtml(url, {
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        });
-        
-        // If failed (e.g. no cookies yet), load /komik/list first to populate the correct cookies and retry
-        if (!html || !html.includes("token")) {
-            this.getHtml(this.baseUrl + "/komik/list");
-            html = this.getHtml(url, {
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "X-Requested-With": "XMLHttpRequest"
-                }
-            });
-        }
-        
-        if (html) {
-            try {
-                let json = JSON.parse(html);
-                if (json.token && json.sign) {
-                    let headers = {
-                        "X-Token": this.cleanB64(json.token),
-                        "X-Sign": json.sign.substring(0, 64)
-                    };
-                    if (token) {
-                        headers["Authorization"] = token;
-                        if (token.startsWith("Bearer ")) {
-                            headers["Cookie"] = "tokkey=" + token.substring(7);
-                        }
-                    }
-                    return headers;
-                }
-            } catch(e) {}
-        }
-        
-        if (token) {
-            let fallbackHeaders = { "Authorization": token };
-            if (token.startsWith("Bearer ")) {
-                fallbackHeaders["Cookie"] = "tokkey=" + token.substring(7);
-            }
-            return fallbackHeaders;
-        }
-        return null; // fallback to unauthenticated or cache
+        return { items: filtered, totalPages: 1 };
     },
 
     getMangaDetails: function(url) {
@@ -389,36 +146,36 @@ var source = {
             mangaId = mangaId.substring(this.baseUrl.length);
         }
         if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
-        
-        let html = this.getHtml(url);
+
+        let html = this.getHtml(this.baseUrl + mangaId);
         let data = this.extractNextData(html);
-        
-        let manga = { url: url, id: mangaId };
-        
+
+        let manga = { url: this.baseUrl + mangaId, id: mangaId };
+
         if (!data || !data.props || !data.props.pageProps) {
             return manga;
         }
-        
+
         let m = data.props.pageProps.data;
-        if (!m) return manga; // Softkomik API changed
-        
-        let cover = m.gambar;
+        if (!m) return manga;
+
+        let cover = m.gambar || "";
         if (cover && cover.startsWith("/")) cover = cover.substring(1);
-        
+
         let rawStatus = (m.status || "").toLowerCase().trim();
-        let status = 0; // Unknown
+        let status = 0;
         if (rawStatus === "ongoing" || rawStatus === "on going") {
             status = 1;
         } else if (rawStatus === "completed" || rawStatus === "complete" || rawStatus === "tamat") {
             status = 2;
         }
-        
+
         manga.title = m.title;
         manga.author = m.author || "";
         manga.description = m.sinopsis || "";
         manga.status = status;
-        manga.thumbnailUrl = this.coverBaseUrl + "/" + cover;
-        
+        manga.thumbnailUrl = cover.startsWith("http") ? cover : (this.coverBaseUrl + "/" + cover);
+
         if (m.Genre && Array.isArray(m.Genre)) {
             manga.genres = m.Genre.map(g => {
                 if (typeof g === 'object' && g !== null) {
@@ -436,105 +193,77 @@ var source = {
             mangaId = mangaId.substring(this.baseUrl.length);
         }
         if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
-        
-        let sessionHeaders = this.getApiSession(false) || {};
-        let chapterUrl = this.apiUrl + "/komik" + mangaId + "/chapter?limit=9999999";
-        
-        let chHtml = this.getHtml(chapterUrl, { headers: sessionHeaders });
-        
+
+        let html = this.getHtml(this.baseUrl + mangaId);
+        let data = this.extractNextData(html);
+
         let chapters = [];
-        if (chHtml) {
-            try {
-                let chData = JSON.parse(chHtml);
-                if (chData && chData.chapter && Array.isArray(chData.chapter)) {
-                    for (let i = 0; i < chData.chapter.length; i++) {
-                        let c = chData.chapter[i];
-                        let chNumStr = c.chapter.toString();
-                        let chNum = parseFloat(chNumStr) || -1;
-                        let chUrl = mangaId + "/chapter/" + chNumStr;
-                        let formattedName = chNumStr.replace(/^0+(?=\d)/, '');
-                        chapters.push({
-                            id: chUrl,
-                            url: this.baseUrl + chUrl,
-                            name: "Chapter " + formattedName,
-                            chapterNumber: chNum,
-                            dateUploaded: c.created_at || ""
-                        });
-                    }
+        if (data && data.props && data.props.pageProps && data.props.pageProps.data) {
+            let m = data.props.pageProps.data;
+            let latestStr = m.latest_chapter || "0";
+            let latestNum = parseInt(latestStr, 10) || 0;
+
+            if (latestNum > 0) {
+                for (let i = latestNum; i >= 1; i--) {
+                    let chNumStr = i < 10 ? "00" + i : (i < 100 ? "0" + i : "" + i);
+                    let chUrl = mangaId + "/chapter/" + chNumStr;
+                    chapters.push({
+                        id: chUrl,
+                        url: this.baseUrl + chUrl,
+                        name: "Chapter " + i,
+                        chapterNumber: i,
+                        dateUploaded: m.updated_at || ""
+                    });
                 }
-            } catch(e) {}
+            }
         }
-        chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
         return chapters;
     },
 
     getPageList: function(chapterUrl) {
-        if (typeof log === 'function') log("getPageList started for: " + chapterUrl);
-        let html = this.getHtml(chapterUrl);
-        if (typeof log === 'function') log("getPageList html length: " + (html ? html.length : 0));
+        let fullUrl = chapterUrl;
+        if (!fullUrl.startsWith("http")) {
+            if (!fullUrl.startsWith("/")) fullUrl = "/" + fullUrl;
+            fullUrl = this.baseUrl + fullUrl;
+        }
+
+        let html = this.getHtml(fullUrl);
         let data = this.extractNextData(html);
-        if (typeof log === 'function') log("getPageList nextData: " + (data ? "found" : "null"));
-        
+
         if (!data || !data.props || !data.props.pageProps) {
             throw new Error("No pages found");
         }
-        
+
         let pageData = data.props.pageProps.data;
         let cData = pageData ? pageData.data : null;
-        if (typeof log === 'function') log("getPageList cData: " + (cData ? "found" : "null"));
         if (!cData) {
             throw new Error("No chapter data found");
         }
-        
+
         let imageSrc = cData.imageSrc || [];
-        if (typeof log === 'function') log("getPageList initial imageSrc count: " + imageSrc.length);
-        
-        // If imageSrc is empty, it needs to be fetched via API
-        if (imageSrc.length === 0) {
-            let sessionHeaders = this.getApiSession(true) || {};
-            if (typeof log === 'function') log("getPageList sessionHeaders: " + JSON.stringify(sessionHeaders));
-            
-            // Parse slug and chapter number from chapterUrl
-            let match = chapterUrl.match(/\/([^/]+)\/chapter\/(?:old\/)?([^/]+)/);
-            if (!match) {
-                throw new Error("Invalid chapter URL format");
+        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.org/softkomik" : "https://psy1.komik.im";
+
+        let pages = [];
+        if (imageSrc && imageSrc.length > 0) {
+            for (let i = 0; i < imageSrc.length; i++) {
+                let img = imageSrc[i];
+                if (img.startsWith("/")) img = img.substring(1);
+                pages.push(imageBaseUrl + "/" + img + "|Referer=" + this.baseUrl + "/");
             }
-            let slug = match[1];
-            let chNum = match[2];
-            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id;
-            if (typeof log === 'function') log("getPageList fetching images from API: " + imgApiUrl);
-            
-            let imgHtml = this.getHtml(imgApiUrl, { headers: sessionHeaders });
-            if (typeof log === 'function') log("getPageList imgHtml length: " + (imgHtml ? imgHtml.length : 0));
-            if (imgHtml) {
-                try {
-                    let imgData = JSON.parse(imgHtml);
-                    if (imgData && imgData.imageSrc) {
-                        imageSrc = imgData.imageSrc;
-                    }
-                } catch(e) {
-                    if (typeof log === 'function') log("getPageList JSON parse error: " + e.message);
+        } else {
+            // Construct page image URLs based on slug and chapter number
+            let match = fullUrl.match(/\/([^/]+)\/chapter\/([0-9a-zA-Z_-]+)/);
+            if (match) {
+                let slug = match[1];
+                let chNum = match[2];
+                for (let pageNum = 1; pageNum <= 50; pageNum++) {
+                    let pStr = pageNum < 10 ? "0" + pageNum : "" + pageNum;
+                    let imgUrl = imageBaseUrl + "/" + slug + "/" + chNum + "/" + pStr + ".webp";
+                    pages.push(imgUrl + "|Referer=" + this.baseUrl + "/");
                 }
             }
         }
-        
-        if (!imageSrc || imageSrc.length === 0) {
-            throw new Error("No pages found or requires login.");
-        }
-        
-        if (typeof log === 'function') log("getPageList storageInter2: " + cData.storageInter2);
-        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.org/softkomik" : "https://psy1.komik.im";
-        if (typeof log === 'function') log("getPageList imageBaseUrl: " + imageBaseUrl);
-        
-        let pages = [];
-        for (let i = 0; i < imageSrc.length; i++) {
-            let img = imageSrc[i];
-            if (img.startsWith("/")) img = img.substring(1);
-            let imgUrl = imageBaseUrl + "/" + img;
-            pages.push(imgUrl + "|Referer=" + this.baseUrl + "/");
-        }
-        
-        if (typeof log === 'function') log("getPageList final pages count: " + pages.length);
+
         return pages;
     },
 
@@ -549,16 +278,5 @@ var source = {
 
     formats: [
         "Manga", "Manhwa", "Manhua"
-    ],
-
-    findGenre: function(name) {
-        if (!name) return null;
-        let lower = name.toLowerCase().trim();
-        for (let i = 0; i < this.genres.length; i++) {
-            if (this.genres[i].toLowerCase() === lower) {
-                return this.genres[i];
-            }
-        }
-        return null;
-    }
+    ]
 };
