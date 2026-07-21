@@ -1,9 +1,10 @@
 var source = {
     name: "Softkomik",
     baseUrl: "https://softkomik.co",
+    apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.1.1",
+    version: "1.2.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -26,10 +27,6 @@ var source = {
     getHtml: function(url, options) {
         try {
             let opts = options || {};
-            if (!opts.headers) opts.headers = {};
-            if (!opts.headers['User-Agent']) {
-                opts.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
-            }
             let response = fetch(url, opts);
             if (response && response.status >= 200 && response.status < 300) {
                 return response.body;
@@ -75,6 +72,7 @@ var source = {
 
     getLatestUpdates: function(page) {
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
+        // No headers — uses Cloudflare bypass path
         let html = this.getHtml(url);
         let items = this.parseMangaCards(html);
 
@@ -120,6 +118,7 @@ var source = {
             url += "&genre=" + encodeURIComponent(gStr);
         }
 
+        // No headers — uses Cloudflare bypass path
         let html = this.getHtml(url);
         let items = this.parseMangaCards(html);
 
@@ -146,6 +145,7 @@ var source = {
         }
         if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
 
+        // No headers — uses Cloudflare bypass path
         let html = this.getHtml(this.baseUrl + mangaId);
         let data = this.extractNextData(html);
 
@@ -193,6 +193,7 @@ var source = {
         }
         if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
 
+        // No headers — uses Cloudflare bypass path
         let html = this.getHtml(this.baseUrl + mangaId);
         let data = this.extractNextData(html);
 
@@ -226,30 +227,98 @@ var source = {
             fullUrl = this.baseUrl + fullUrl;
         }
 
+        // Step 1: Load chapter HTML — no headers, uses Cloudflare bypass
+        // This also seeds the cookies needed for the session API below
         let html = this.getHtml(fullUrl);
         let data = this.extractNextData(html);
 
         if (!data || !data.props || !data.props.pageProps) {
-            throw new Error("No pages found on Softkomik.");
+            throw new Error("Gagal memuat halaman chapter Softkomik.");
         }
 
         let pageData = data.props.pageProps.data;
         let cData = pageData ? pageData.data : null;
         let imageSrc = cData ? (cData.imageSrc || []) : [];
 
-        if (imageSrc && imageSrc.length > 0) {
-            let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.online/softkomik" : "https://psy1.komik.im";
-            let pages = [];
-            for (let i = 0; i < imageSrc.length; i++) {
-                let img = imageSrc[i];
-                if (img.startsWith("/")) img = img.substring(1);
-                pages.push(imageBaseUrl + "/" + img + "|Referer=" + this.baseUrl + "/");
+        // Step 2: If imageSrc is empty, fetch from API using session token
+        if (!imageSrc || imageSrc.length === 0) {
+            if (!cData || !cData._id) {
+                throw new Error("Tidak ada data chapter yang ditemukan.");
             }
-            return pages;
+
+            // Session endpoint — fetch WITHOUT headers so Cloudflare bypass is active
+            // The homepage visit in Step 1 already set Cloudflare cookies
+            let sessionUrl = this.baseUrl + "/api/session/chapter/oioa";
+            let sessBody = this.getHtml(sessionUrl);
+            
+            if (!sessBody) {
+                throw new Error("Gagal mendapat session token dari Softkomik. Coba beberapa saat lagi.");
+            }
+
+            let sessJson = null;
+            try {
+                sessJson = JSON.parse(sessBody);
+            } catch(e) {
+                throw new Error("Response session Softkomik tidak valid.");
+            }
+
+            if (!sessJson || !sessJson.token || !sessJson.sign) {
+                throw new Error("Session token Softkomik kosong. Server mungkin sedang bermasalah.");
+            }
+
+            // Extract slug and chapter from URL
+            let urlMatch = fullUrl.match(/\/([^/]+)\/chapter\/([^/]+)/);
+            if (!urlMatch) {
+                throw new Error("Format URL chapter tidak valid.");
+            }
+            let slug = urlMatch[1];
+            let chNum = urlMatch[2];
+
+            // Clean token/sign as Tachiyomi does
+            let cleanToken = sessJson.token;
+            let rawSign = sessJson.sign;
+            let cleanSign = rawSign.indexOf('|') !== -1 ? rawSign.substring(0, rawSign.indexOf('|')) : rawSign.substring(0, 64);
+
+            // Image API call — with X-Token and X-Sign headers
+            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id;
+            let imgBody = this.getHtml(imgApiUrl, {
+                headers: {
+                    "X-Token": cleanToken,
+                    "X-Sign": cleanSign,
+                    "Referer": this.baseUrl + "/"
+                }
+            });
+
+            if (!imgBody) {
+                throw new Error("Gagal memuat daftar gambar dari server Softkomik.");
+            }
+
+            try {
+                let imgJson = JSON.parse(imgBody);
+                if (imgJson && imgJson.imageSrc) {
+                    imageSrc = imgJson.imageSrc;
+                }
+            } catch(e) {}
         }
 
-        // If imageSrc is empty, server/API is currently offline from Softkomik side
-        throw new Error("Server gambar Softkomik sedang offline/down dari pusat web Softkomik.");
+        if (!imageSrc || imageSrc.length === 0) {
+            throw new Error("Gambar tidak tersedia untuk chapter ini di Softkomik.");
+        }
+
+        let imageBaseUrl = cData.storageInter2 === true ? "https://cdn1.softkomik.online/softkomik" : "https://psy1.komik.im";
+        let pages = [];
+        for (let i = 0; i < imageSrc.length; i++) {
+            let img = imageSrc[i];
+            if (img.startsWith("/")) img = img.substring(1);
+            // If it's a full URL (like from psy1.komik.im/img-file/...)
+            if (img.startsWith("http")) {
+                pages.push(img + "|Referer=" + this.baseUrl + "/");
+            } else {
+                pages.push(imageBaseUrl + "/" + img + "|Referer=" + this.baseUrl + "/");
+            }
+        }
+
+        return pages;
     },
 
     genres: [
