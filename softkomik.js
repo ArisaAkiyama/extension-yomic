@@ -309,17 +309,23 @@ var source = {
             throw new Error("Gambar tidak tersedia untuk chapter ini di Softkomik.");
         }
 
-        // psy1.komik.im is the primary CDN; relative paths start with 'img-file/'
+        // CDN selection based on storageInter2 flag:
+        // storageInter2 = true  → cdn1.softkomik.org/softkomik/
+        // storageInter2 = false → psy1.komik.im/
+        let cdnBase = (cData && cData.storageInter2 === true)
+            ? "https://cdn1.softkomik.org/softkomik/"
+            : "https://psy1.komik.im/";
+
         let pages = [];
         for (let i = 0; i < imageSrc.length; i++) {
             let img = imageSrc[i];
             if (img.startsWith("/")) img = img.substring(1);
-            // If it's a full URL
+            // If it's already a full URL
             if (img.startsWith("http")) {
                 pages.push(img + "|Referer=" + this.baseUrl + "/");
             } else {
-                // Relative path — prefix with psy1.komik.im
-                pages.push("https://psy1.komik.im/" + img + "|Referer=" + this.baseUrl + "/");
+                // Relative path — prefix with selected CDN
+                pages.push(cdnBase + img + "|Referer=" + this.baseUrl + "/");
             }
         }
 
