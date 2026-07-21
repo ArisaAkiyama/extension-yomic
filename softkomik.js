@@ -4,7 +4,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.2.0",
+    version: "1.3.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -66,34 +66,80 @@ var source = {
         return items;
     },
 
+    // Retrieve a session token from the list/search session endpoint.
+    // Uses Cloudflare bypass (no custom headers) same as getPageList.
+    // Returns { token, cleanSign } or null on failure.
+    getApiSession: function() {
+        // Visit homepage first to seed Cloudflare cookies
+        this.getHtml(this.baseUrl);
+        // Fetch session without headers — triggers GetStringAsync / CF bypass
+        let sessBody = this.getHtml(this.baseUrl + "/api/session/iuiuiwqw");
+        if (!sessBody) return null;
+        try {
+            let sess = JSON.parse(sessBody);
+            if (!sess || !sess.token) return null;
+            let rawSig = sess.sig || sess.sign || '';
+            let cleanSig = rawSig.indexOf('|') !== -1 ? rawSig.substring(0, rawSig.indexOf('|')) : rawSig.substring(0, 64);
+            return { token: sess.token, sign: cleanSig };
+        } catch(e) {
+            return null;
+        }
+    },
+
+    // Parse manga list from v2.softdevices.my.id API response
+    parseApiResponse: function(body) {
+        try {
+            let json = JSON.parse(body);
+            let list = json.data || [];
+            let maxPage = json.maxPage || 1;
+            let items = list.map(m => {
+                let slug = m.title_slug || '';
+                let cover = m.gambar || '';
+                if (cover && !cover.startsWith('http')) {
+                    cover = this.coverBaseUrl + '/' + cover;
+                }
+                return {
+                    id: '/' + slug,
+                    title: m.title || slug,
+                    thumbnailUrl: cover,
+                    url: this.baseUrl + '/' + slug
+                };
+            }).filter(m => m.id !== '/');
+            return { items, totalPages: maxPage };
+        } catch(e) {
+            return null;
+        }
+    },
+
+    // Fetch from v2 API with session token. Returns parsed result or null.
+    fetchApi: function(params) {
+        let sess = this.getApiSession();
+        if (!sess) return null;
+        let url = this.apiUrl + '/komik?' + params;
+        let body = this.getHtml(url, {
+            headers: {
+                'X-Token': sess.token,
+                'X-Sign': sess.sign,
+                'Referer': this.baseUrl + '/'
+            }
+        });
+        if (!body) return null;
+        return this.parseApiResponse(body);
+    },
+
     getPopularManga: function(page) {
+        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=popular&showAdult=false');
+        if (result && result.items.length > 0) return result;
         return this.getMangaList(page, 0, null, null);
     },
 
     getLatestUpdates: function(page) {
+        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=newKomik&showAdult=false');
+        if (result && result.items.length > 0) return result;
+        // Fallback to HTML scraping
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
-        // No headers — uses Cloudflare bypass path
         let html = this.getHtml(url);
         let items = this.parseMangaCards(html);
-
-        if (items.length === 0 && page === 1) {
-            let homeHtml = this.getHtml(this.baseUrl);
-            let nextData = this.extractNextData(homeHtml);
-            if (nextData && nextData.props && nextData.props.pageProps && nextData.props.pageProps.data && nextData.props.pageProps.data.newKomik) {
-                let list = nextData.props.pageProps.data.newKomik;
-                items = list.map(m => {
-                    let cover = m.gambar || "";
-                    if (cover && cover.startsWith("/")) cover = cover.substring(1);
-                    return {
-                        id: "/" + (m.title_slug || m.link),
-                        title: m.title,
-                        thumbnailUrl: cover.startsWith("http") ? cover : (this.coverBaseUrl + "/" + cover),
-                        url: this.baseUrl + "/" + (m.title_slug || m.link)
-                    };
-                });
-            }
-        }
-
         return { items: items, totalPages: 100 };
     },
 
@@ -128,13 +174,17 @@ var source = {
     searchManga: function(query, page) {
         if (!query) return this.getPopularManga(page);
 
-        let url = this.baseUrl + "/komik/library?page=" + page + "&sortBy=newKomik";
+        // Use v2 API search endpoint with session token (Cloudflare bypass)
+        let params = 'page=' + page + '&limit=24&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
+        let result = this.fetchApi(params);
+        if (result) return result;
+
+        // Fallback: load a library page and filter by title locally
+        let url = this.baseUrl + "/komik/library?page=1&sortBy=popular";
         let html = this.getHtml(url);
         let items = this.parseMangaCards(html);
-
         let q = query.toLowerCase().trim();
         let filtered = items.filter(m => m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
-
         return { items: filtered, totalPages: 1 };
     },
 
