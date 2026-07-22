@@ -66,31 +66,50 @@ var source = {
         return items;
     },
 
-    // Retrieve a session token from the list/search session endpoint.
-    // Uses Cloudflare bypass (no custom headers) same as getPageList.
-    // Returns { token, cleanSign } or null on failure.
+    // Helper: clean X-Sign by stripping the pipe suffix
+    cleanSign: function(raw) {
+        if (!raw) return '';
+        return raw.indexOf('|') !== -1 ? raw.substring(0, raw.indexOf('|')) : raw.substring(0, 64);
+    },
+
+    // Retrieve a session token for the v2 API.
+    // Strategy:
+    //   1. Visit library page (known accessible) to seed CF cookies
+    //   2. Try the list session endpoint /api/session/iuiuiwqw
+    //   3. Fallback to chapter session /api/session/chapter/oioa (works after any chapter page visit)
+    // Returns { token, sign } or null.
     getApiSession: function() {
-        // Visit homepage first to seed Cloudflare cookies
-        this.getHtml(this.baseUrl);
-        // Fetch session without headers — triggers GetStringAsync / CF bypass
-        let sessBody = this.getHtml(this.baseUrl + "/api/session/iuiuiwqw");
-        if (!sessBody) return null;
-        try {
-            let sess = JSON.parse(sessBody);
-            if (!sess || !sess.token) return null;
-            let rawSig = sess.sig || sess.sign || '';
-            let cleanSig = rawSig.indexOf('|') !== -1 ? rawSig.substring(0, rawSig.indexOf('|')) : rawSig.substring(0, 64);
-            return { token: sess.token, sign: cleanSig };
-        } catch(e) {
-            return null;
+        // Seed CF cookies via a known-accessible page (not homepage which may not trigger CF bypass)
+        this.getHtml(this.baseUrl + '/komik/library');
+
+        // Attempt 1: list session endpoint
+        let body1 = this.getHtml(this.baseUrl + '/api/session/iuiuiwqw');
+        if (body1) {
+            try {
+                let s = JSON.parse(body1);
+                if (s && s.token) return { token: s.token, sign: this.cleanSign(s.sig || s.sign || '') };
+            } catch(e) {}
         }
+
+        // Attempt 2: chapter session endpoint (also works for list API in practice)
+        let body2 = this.getHtml(this.baseUrl + '/api/session/chapter/oioa');
+        if (body2) {
+            try {
+                let s = JSON.parse(body2);
+                if (s && s.token) return { token: s.token, sign: this.cleanSign(s.sign || '') };
+            } catch(e) {}
+        }
+
+        return null;
     },
 
     // Parse manga list from v2.softdevices.my.id API response
     parseApiResponse: function(body) {
+        if (!body) return null;
         try {
             let json = JSON.parse(body);
             let list = json.data || [];
+            if (!Array.isArray(list)) return null;
             let maxPage = json.maxPage || 1;
             let items = list.map(m => {
                 let slug = m.title_slug || '';
@@ -105,7 +124,7 @@ var source = {
                     url: this.baseUrl + '/' + slug
                 };
             }).filter(m => m.id !== '/');
-            return { items, totalPages: maxPage };
+            return { items: items, totalPages: maxPage };
         } catch(e) {
             return null;
         }
@@ -113,18 +132,23 @@ var source = {
 
     // Fetch from v2 API with session token. Returns parsed result or null.
     fetchApi: function(params) {
+        let apiUrl = this.apiUrl + '/komik?' + params;
+
+        // Try with session token (required by API)
         let sess = this.getApiSession();
-        if (!sess) return null;
-        let url = this.apiUrl + '/komik?' + params;
-        let body = this.getHtml(url, {
-            headers: {
-                'X-Token': sess.token,
-                'X-Sign': sess.sign,
-                'Referer': this.baseUrl + '/'
-            }
-        });
-        if (!body) return null;
-        return this.parseApiResponse(body);
+        if (sess) {
+            let body = this.getHtml(apiUrl, {
+                headers: {
+                    'X-Token': sess.token,
+                    'X-Sign': sess.sign,
+                    'Referer': this.baseUrl + '/'
+                }
+            });
+            let result = this.parseApiResponse(body);
+            if (result) return result;
+        }
+
+        return null;
     },
 
     getPopularManga: function(page) {
@@ -174,18 +198,28 @@ var source = {
     searchManga: function(query, page) {
         if (!query) return this.getPopularManga(page);
 
-        // Use v2 API search endpoint with session token (Cloudflare bypass)
+        // Primary: Use v2 API search with session token
         let params = 'page=' + page + '&limit=24&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
         let result = this.fetchApi(params);
-        if (result) return result;
+        if (result && result.items.length > 0) return result;
 
-        // Fallback: load a library page and filter by title locally
-        let url = this.baseUrl + "/komik/library?page=1&sortBy=popular";
-        let html = this.getHtml(url);
-        let items = this.parseMangaCards(html);
+        // Fallback: Search across multiple library pages and filter by title
+        // This is slower but works without API session
         let q = query.toLowerCase().trim();
-        let filtered = items.filter(m => m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
-        return { items: filtered, totalPages: 1 };
+        let found = [];
+        let pagesToCheck = Math.min(page, 5); // Check up to 5 pages
+        for (let p = 1; p <= pagesToCheck && found.length < 24; p++) {
+            let libUrl = this.baseUrl + '/komik/library?page=' + p + '&sortBy=popular';
+            let html = this.getHtml(libUrl);
+            let items = this.parseMangaCards(html);
+            if (items.length === 0) break;
+            for (let m of items) {
+                if (m.title.toLowerCase().includes(q) || m.id.toLowerCase().replace(/-bahasa-indonesia/g, '').includes(q.replace(/\s+/g, '-'))) {
+                    found.push(m);
+                }
+            }
+        }
+        return { items: found, totalPages: found.length >= 24 ? page + 1 : 1 };
     },
 
     getMangaDetails: function(url) {
