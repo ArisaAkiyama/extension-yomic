@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.6.0",
+    version: "1.7.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -231,7 +231,7 @@ var source = {
         return { items: items, totalPages: 100 };
     },
 
-    searchManga: function(query, page) {
+    getSearchManga: function(query, page) {
         if (!query) return this.getPopularManga(page);
 
         // Keiyoushi search API format: name=query&search=true&limit=20&page=1
@@ -245,6 +245,10 @@ var source = {
         if (resultAlt && resultAlt.items.length > 0) return resultAlt;
 
         return { items: [], totalPages: 1 };
+    },
+
+    searchManga: function(query, page) {
+        return this.getSearchManga(query, page);
     },
 
     getMangaDetails: function(url) {
