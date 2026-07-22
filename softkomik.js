@@ -4,7 +4,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.4.0",
+    version: "1.5.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -167,7 +167,8 @@ var source = {
                 headers: {
                     'X-Token': sess.token,
                     'X-Sign': sess.sign,
-                    'Referer': this.baseUrl + '/'
+                    'Referer': this.baseUrl + '/',
+                    'Origin': this.baseUrl
                 }
             });
             let result = this.parseApiResponse(body);
@@ -179,14 +180,14 @@ var source = {
 
     getPopularManga: function(page) {
         let listUrl = this.baseUrl + '/komik/list';
-        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=popular&showAdult=false', listUrl);
+        let result = this.fetchApi('page=' + page + '&limit=20&sortBy=popular&showAdult=false', listUrl);
         if (result && result.items.length > 0) return result;
         return this.getMangaList(page, 0, null, null);
     },
 
     getLatestUpdates: function(page) {
         let listUrl = this.baseUrl + '/komik/list';
-        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=newKomik&showAdult=false', listUrl);
+        let result = this.fetchApi('page=' + page + '&limit=20&sortBy=newKomik&showAdult=false', listUrl);
         if (result && result.items.length > 0) return result;
         // Fallback to HTML scraping
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
@@ -226,18 +227,18 @@ var source = {
     searchManga: function(query, page) {
         if (!query) return this.getPopularManga(page);
 
-        // Primary: Use v2 API search with session token derived from /komik/list?name=query
+        // Keiyoushi API Search format: ?name=query&search=true&limit=20&page=page
         let listUrl = this.baseUrl + '/komik/list?name=' + encodeURIComponent(query);
-        let params = 'page=' + page + '&limit=24&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
+        let params = 'name=' + encodeURIComponent(query) + '&search=true&limit=20&page=' + page;
         let result = this.fetchApi(params, listUrl);
         if (result && result.items.length > 0) return result;
 
-        // Fallback search
+        // Fallback search: fetch popular/library page HTML
         let q = query.toLowerCase().trim();
         let found = [];
         let pagesToCheck = Math.min(page, 5);
-        for (let p = 1; p <= pagesToCheck && found.length < 24; p++) {
-            let libUrl = this.baseUrl + '/komik/library?page=' + p + '&sortBy=popular';
+        for (let p = 1; p <= pagesToCheck && found.length < 20; p++) {
+            let libUrl = this.baseUrl + '/komik/library?page=' + p;
             let html = this.getHtml(libUrl);
             let items = this.parseMangaCards(html);
             if (items.length === 0) break;
@@ -247,7 +248,7 @@ var source = {
                 }
             }
         }
-        return { items: found, totalPages: found.length >= 24 ? page + 1 : 1 };
+        return { items: found, totalPages: found.length >= 20 ? page + 1 : 1 };
     },
 
     getMangaDetails: function(url) {
