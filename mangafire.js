@@ -2,7 +2,7 @@ var source = {
     name: "MangaFire",
     baseUrl: "https://mangafire.to",
     language: "en",
-    version: "1.0.0",
+    version: "1.1.0",
     description: "MangaFire English extension implemented in JavaScript using their JSON API",
     author: "DesktopKomik",
     iconBackground: "#0b0c0f",
@@ -41,6 +41,10 @@ var source = {
         if (!query) return this.getPopularManga(page);
         let url = this.baseUrl + "/api/titles?keyword=" + encodeURIComponent(query) + "&page=" + page + "&limit=50";
         return this.getMangaPage(url);
+    },
+
+    searchManga: function(query, page) {
+        return this.getSearchManga(query, page);
     },
 
     toSafeArray: function(val) {
@@ -367,13 +371,17 @@ var source = {
     },
 
     getJson: function(url) {
-        let response = fetch(url, {
-            headers: {
-                "Accept": "application/json",
-                "Referer": this.baseUrl + "/"
+        try {
+            let response = fetch(url, {
+                headers: {
+                    "Accept": "application/json",
+                    "Referer": this.baseUrl + "/"
+                }
+            });
+            if (response && response.status >= 200 && response.status < 300) {
+                return JSON.parse(response.body);
             }
-        });
-        if (response.status < 200 || response.status >= 300) return null;
-        return JSON.parse(response.body);
+        } catch(e) {}
+        return null;
     }
 };
