@@ -1,13 +1,13 @@
 var source = {
     id: 3639673976007021338,
     name: "Kiryuu",
-    baseUrl: "https://v6.kiryuu.to",
-    apiUrl: "https://v6.kiryuu.to/wp-json/wp/v2",
+    baseUrl: "https://v7.kiryuu.to",
+    apiUrl: "https://v7.kiryuu.to/wp-json/wp/v2",
     language: "id",
-    version: "1.0.2",
+    version: "1.0.3",
     description: "Baca komik Bahasa Indonesia dari Kiryuu",
     author: "DesktopKomik",
-    iconUrl: "https://v6.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
+    iconUrl: "https://v7.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
     iconBackground: "#3b0764",
     iconForeground: "#f5d0fe",
     isNsfw: true,
@@ -327,6 +327,7 @@ var source = {
 
     isReaderImage: function(url) {
         url = (url || "").toLowerCase();
+        if (url.indexOf(".gif") !== -1) return false;
         if (url.indexOf("logo-kiryuu") !== -1 || url.indexOf("cropped-logo") !== -1) return false;
         if (url.indexOf("banner-kiryuu") !== -1 || url.indexOf("kiryuu.io") !== -1) return false;
         if (url.indexOf("/wp-content/uploads/") !== -1 && url.indexOf("cdn.uqni.net") === -1 && url.indexOf("yuucdn.com") === -1) return false;
