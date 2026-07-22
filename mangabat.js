@@ -2,8 +2,8 @@ var source = {
     name: "Mangabat",
     baseUrl: "https://www.mangabats.com",
     language: "en",
-    version: "1.0.2",
-    description: "Mangabat English extension implemented in JavaScript using MangaBox endpoints",
+    version: "1.0.3",
+    description: "Mangabat English extension implemented in JavaScript using HTML parsing and MangaBox endpoints",
     author: "DesktopKomik",
     iconBackground: "#111827",
     iconForeground: "#facc15",
@@ -159,11 +159,34 @@ var source = {
     },
 
     getChapterList: function(mangaUrl) {
+        let absUrl = this.absoluteUrl(mangaUrl);
+        let html = this.getHtml(absUrl);
+        let chapters = [];
+
+        if (html && !this.isBlockedHtml(html)) {
+            let re = /<a\b[^>]+href=["'](https?:\/\/[^"']*\/chapter-[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+            let match;
+            let seen = {};
+            while ((match = re.exec(html)) !== null) {
+                let href = match[1];
+                if (!href || seen[href] || href.indexOf("/chapter-") === -1) continue;
+                seen[href] = true;
+
+                let name = this.cleanText(match[2].replace(/<[^>]+>/g, ""));
+                chapters.push({
+                    name: name || this.titleFromUrl(href),
+                    url: this.relativeUrl(href),
+                    dateUpload: 0
+                });
+            }
+        }
+
+        if (chapters.length > 0) return chapters;
+
         let slug = this.extractMangaSlug(mangaUrl);
         if (!slug) return [];
 
         let offset = 0;
-        let chapters = [];
         while (offset < 10000) {
             let apiUrl = this.baseUrl + "/api/manga/" + encodeURIComponent(slug) + "/chapters?limit=" + this.chapterPageSize + "&offset=" + offset;
             let json = this.getJson(apiUrl);
@@ -398,7 +421,12 @@ var source = {
     },
 
     getHtml: function(url) {
-        let response = fetch(url);
+        let response = fetch(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                "Referer": this.baseUrl + "/"
+            }
+        });
         if (response.status < 200 || response.status >= 300) return "";
         return response.body;
     },
