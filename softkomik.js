@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.7.0",
+    version: "1.8.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -345,8 +345,8 @@ var source = {
         let html = this.getHtml(fullUrl);
         let data = this.extractNextData(html);
 
-        if (!data || !data.props || !data.props.pageProps) {
-            throw new Error("Gagal memuat halaman chapter Softkomik.");
+        if (!data || !data.props || !data.props.pageProps || !data.props.pageProps.data) {
+            throw new Error("Chapter ini sedang rusak/bermasalah dari server Softkomik (HTTP 500 dari website Softkomik). Silakan baca chapter sebelum/sesudahnya.");
         }
 
         let pageData = data.props.pageProps.data;
