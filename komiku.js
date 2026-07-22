@@ -12,7 +12,7 @@ var source = {
     isHasMorePages: true,
 
     getPopularManga: function(page) {
-        return this.getApiMangaPage(page, "?orderby=meta_value_num", 737, "probe-known-end");
+        return this.getApiMangaPage(page, "?orderby=meta_value_num", 752);
     },
 
     getLatestUpdates: function(page) {
@@ -27,7 +27,7 @@ var source = {
         return this.getApiMangaPage(page, queryString, 50);
     },
 
-    getApiMangaPage: function(page, queryString, estimatedPages, totalMode) {
+    getApiMangaPage: function(page, queryString, estimatedPages) {
         const appPageSize = 14;
         const apiPageSize = 10;
         let startIndex = (Math.max(1, page) - 1) * appPageSize;
@@ -37,17 +37,10 @@ var source = {
         let sourceTotalPages = estimatedPages || 500;
         let sourceTotalItems = sourceTotalPages * apiPageSize;
 
-        if (totalMode === "probe-known-end") {
-            sourceTotalItems = this.resolveKnownStatusTotalItems(queryString, sourceTotalPages);
-            sourceTotalPages = Math.max(sourceTotalPages, Math.ceil(sourceTotalItems / apiPageSize));
-        }
-
         for (let sourcePage = firstApiPage; collected.length < appPageSize && sourcePage <= sourceTotalPages; sourcePage++) {
             let pageResult = this.getRawApiMangaPage(sourcePage, queryString, sourceTotalPages);
-            if (totalMode !== "probe-known-end") {
-                sourceTotalPages = pageResult.totalPages;
-                sourceTotalItems = sourceTotalPages * apiPageSize;
-            }
+            sourceTotalPages = pageResult.totalPages;
+            sourceTotalItems = sourceTotalPages * apiPageSize;
 
             let items = pageResult.items;
             if (sourcePage === firstApiPage && offset > 0) {
@@ -89,33 +82,6 @@ var source = {
         };
     },
 
-    resolveKnownStatusTotalItems: function(queryString, knownLastPage) {
-        const apiPageSize = 10;
-        let lastPage = Math.max(1, knownLastPage || 1);
-        let lastResult = this.getRawApiMangaPage(lastPage, queryString, lastPage);
-        if (lastResult.items.length === 0) {
-            return lastPage * apiPageSize;
-        }
-
-        // Keep the count live without a slow binary search. Most days this only checks
-        // page 58 and 59 for Completed, but it can grow if Komiku adds new completed pages.
-        let safety = 0;
-        while (lastResult.items.length > 0 && lastResult.totalPages > lastPage && safety < 20) {
-            lastPage++;
-            lastResult = this.getRawApiMangaPage(lastPage, queryString, lastPage);
-            safety++;
-            if (lastResult.items.length === 0) {
-                lastPage--;
-                break;
-            }
-        }
-
-        if (lastResult.items.length === 0) {
-            lastResult = this.getRawApiMangaPage(lastPage, queryString, lastPage);
-        }
-
-        return ((lastPage - 1) * apiPageSize) + lastResult.items.length;
-    },
 
     getMangaList: function(page, status, genre, type) {
         let params = [];
@@ -171,25 +137,24 @@ var source = {
         if (params.length > 0) {
             let queryString = "?" + params.join("&") + "&orderby=meta_value_num";
             
-            // Only use the optimized probe if filtering strictly by status
-            if (!isFiltered && (status === 1 || status === 2)) {
-                let knownApiPages = status === 2 ? 58 : 646;
-                let result = this.getApiMangaPage(page, queryString, knownApiPages, "probe-known-end");
-                if (result && result.items) {
-                    for (let i = 0; i < result.items.length; i++) {
-                        result.items[i].status = status;
-                    }
-                }
-                return result;
-            } else {
-                let result = this.getApiMangaPage(page, queryString, 500);
-                if (result && result.items && (status === 1 || status === 2)) {
-                    for (let i = 0; i < result.items.length; i++) {
-                        result.items[i].status = status;
-                    }
-                }
-                return result;
+            // Use exact probed values for estimated pages
+            let estimatedPages = 752;
+            if (status === 1) {
+                estimatedPages = 651;
+            } else if (status === 2) {
+                estimatedPages = 58;
             }
+            if (isFiltered) {
+                estimatedPages = 50; // Filtered lists usually have much fewer pages
+            }
+            
+            let result = this.getApiMangaPage(page, queryString, estimatedPages);
+            if (result && result.items && (status === 1 || status === 2)) {
+                for (let i = 0; i < result.items.length; i++) {
+                    result.items[i].status = status;
+                }
+            }
+            return result;
         }
 
         return this.getPopularManga(page);

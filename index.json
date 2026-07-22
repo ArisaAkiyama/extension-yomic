@@ -2,73 +2,79 @@
   {
     "name": "aarlas.js",
     "version": "1.0.0",
-    "last_commit_date": "2026-06-27T09:48:27Z",
+    "last_commit_date": "2026-06-13T09:20:39.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/aarlas.js"
   },
   {
     "name": "kiryuu.js",
     "version": "1.0.3",
-    "last_commit_date": "2026-07-22T05:30:17Z",
+    "last_commit_date": "2026-07-22T05:30:17.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/kiryuu.js"
   },
   {
     "name": "komikcast.js",
     "version": "1.0.0",
-    "last_commit_date": "2026-07-04T08:02:35Z",
+    "last_commit_date": "2026-07-04T08:00:47.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/komikcast.js"
   },
   {
     "name": "komiku.js",
     "version": "1.0.0",
-    "last_commit_date": "2026-07-13T12:25:30Z",
+    "last_commit_date": "2026-07-04T07:49:41.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/komiku.js"
   },
   {
     "name": "maidmanga.js",
     "version": "1.0.5",
-    "last_commit_date": "2026-07-04T08:37:07Z",
+    "last_commit_date": "2026-07-04T08:37:07.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/maidmanga.js"
   },
   {
     "name": "mangabat.js",
     "version": "1.0.3",
-    "last_commit_date": "2026-07-22T05:54:31Z",
+    "last_commit_date": "2026-07-22T05:54:36.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/mangabat.js"
   },
   {
     "name": "mangadex.js",
     "version": "1.0.3",
-    "last_commit_date": "2026-07-05T05:50:27Z",
+    "last_commit_date": "2026-07-05T05:50:27.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/mangadex.js"
   },
   {
     "name": "mangafire.js",
     "version": "1.1.0",
-    "last_commit_date": "2026-07-22T03:11:06Z",
+    "last_commit_date": "2026-07-22T03:11:06.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/mangafire.js"
   },
   {
     "name": "nhentaixxx.js",
-    "version": "1.0.0",
-    "last_commit_date": "2026-07-22T04:30:00Z",
+    "version": "1.0.2",
+    "last_commit_date": "2026-06-16T13:21:17.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/nhentaixxx.js"
+  },
+  {
+    "name": "ryzukomik.js",
+    "version": "1.0.0",
+    "last_commit_date": "2026-07-13T08:29:10.714Z",
+    "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/ryzukomik.js"
   },
   {
     "name": "softkomik.js",
     "version": "1.8.0",
-    "last_commit_date": "2026-07-22T04:08:59Z",
+    "last_commit_date": "2026-07-22T04:08:59.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/softkomik.js"
   },
   {
     "name": "weebcentral.js",
     "version": "1.0.3",
-    "last_commit_date": "2026-06-14T12:01:53Z",
+    "last_commit_date": "2026-06-14T12:01:53.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/weebcentral.js"
   },
   {
     "name": "westmanga.js",
     "version": "1.0.0",
-    "last_commit_date": "2026-07-05T05:50:27Z",
+    "last_commit_date": "2026-07-05T05:50:27.000Z",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/westmanga.js"
   }
 ]
