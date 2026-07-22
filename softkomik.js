@@ -63,6 +63,26 @@ var source = {
                 });
             }
         }
+        // Secondary fallback for raw href extraction if item-komik blocks are not found
+        if (items.length === 0 && html && html.includes('href="/')) {
+            let re = /href="\/([a-z0-9-]+-bahasa-indonesia)"/gi;
+            let match;
+            let seen = {};
+            while ((match = re.exec(html)) !== null) {
+                let slug = match[1];
+                if (!seen[slug]) {
+                    seen[slug] = true;
+                    let title = slug.replace(/-bahasa-indonesia$/i, '').replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+                    items.push({
+                        id: "/" + slug,
+                        title: title,
+                        thumbnailUrl: this.coverBaseUrl + "/image-cover/" + slug + ".jpeg",
+                        url: this.baseUrl + "/" + slug
+                    });
+                }
+            }
+        }
+
         return items;
     },
 
