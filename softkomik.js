@@ -4,7 +4,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.3.0",
+    version: "1.4.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -73,32 +73,39 @@ var source = {
     },
 
     // Retrieve a session token for the v2 API.
-    // Strategy:
-    //   1. Visit library page (known accessible) to seed CF cookies
-    //   2. Try the list session endpoint /api/session/iuiuiwqw
-    //   3. Fallback to chapter session /api/session/chapter/oioa (works after any chapter page visit)
-    // Returns { token, sign } or null.
-    getApiSession: function() {
-        // Seed CF cookies via a known-accessible page (not homepage which may not trigger CF bypass)
-        this.getHtml(this.baseUrl + '/komik/library');
+    // Must visit /komik/list page first to seed cookies, then pass Referer to session endpoint.
+    getApiSession: function(refererUrl) {
+        let ref = refererUrl || (this.baseUrl + '/komik/list');
 
-        // Attempt 1: list session endpoint
-        let body1 = this.getHtml(this.baseUrl + '/api/session/iuiuiwqw');
-        if (body1) {
-            try {
-                let s = JSON.parse(body1);
-                if (s && s.token) return { token: s.token, sign: this.cleanSign(s.sig || s.sign || '') };
-            } catch(e) {}
+        // Step 1: Visit page without headers (seeds cookies and handles CF bypass if needed)
+        this.getHtml(ref);
+
+        // Step 2: Fetch session token passing the Referer header
+        let sessBody = this.getHtml(this.baseUrl + '/api/session/iuiuiwqw', {
+            headers: {
+                'Referer': ref
+            }
+        });
+
+        if (!sessBody) {
+            // Fallback to chapter session endpoint
+            sessBody = this.getHtml(this.baseUrl + '/api/session/chapter/oioa', {
+                headers: {
+                    'Referer': ref
+                }
+            });
         }
 
-        // Attempt 2: chapter session endpoint (also works for list API in practice)
-        let body2 = this.getHtml(this.baseUrl + '/api/session/chapter/oioa');
-        if (body2) {
-            try {
-                let s = JSON.parse(body2);
-                if (s && s.token) return { token: s.token, sign: this.cleanSign(s.sign || '') };
-            } catch(e) {}
-        }
+        if (!sessBody) return null;
+
+        try {
+            let s = JSON.parse(sessBody);
+            if (s && s.token) {
+                let rawSig = s.sig || s.sign || '';
+                let cleanSig = rawSig.indexOf('|') !== -1 ? rawSig.substring(0, rawSig.indexOf('|')) : rawSig.substring(0, 64);
+                return { token: s.token, sign: cleanSig };
+            }
+        } catch(e) {}
 
         return null;
     },
@@ -131,11 +138,10 @@ var source = {
     },
 
     // Fetch from v2 API with session token. Returns parsed result or null.
-    fetchApi: function(params) {
+    fetchApi: function(params, refererUrl) {
         let apiUrl = this.apiUrl + '/komik?' + params;
 
-        // Try with session token (required by API)
-        let sess = this.getApiSession();
+        let sess = this.getApiSession(refererUrl);
         if (sess) {
             let body = this.getHtml(apiUrl, {
                 headers: {
@@ -152,13 +158,15 @@ var source = {
     },
 
     getPopularManga: function(page) {
-        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=popular&showAdult=false');
+        let listUrl = this.baseUrl + '/komik/list';
+        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=popular&showAdult=false', listUrl);
         if (result && result.items.length > 0) return result;
         return this.getMangaList(page, 0, null, null);
     },
 
     getLatestUpdates: function(page) {
-        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=newKomik&showAdult=false');
+        let listUrl = this.baseUrl + '/komik/list';
+        let result = this.fetchApi('page=' + page + '&limit=24&sortBy=newKomik&showAdult=false', listUrl);
         if (result && result.items.length > 0) return result;
         // Fallback to HTML scraping
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
@@ -198,16 +206,16 @@ var source = {
     searchManga: function(query, page) {
         if (!query) return this.getPopularManga(page);
 
-        // Primary: Use v2 API search with session token
+        // Primary: Use v2 API search with session token derived from /komik/list?name=query
+        let listUrl = this.baseUrl + '/komik/list?name=' + encodeURIComponent(query);
         let params = 'page=' + page + '&limit=24&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
-        let result = this.fetchApi(params);
+        let result = this.fetchApi(params, listUrl);
         if (result && result.items.length > 0) return result;
 
-        // Fallback: Search across multiple library pages and filter by title
-        // This is slower but works without API session
+        // Fallback search
         let q = query.toLowerCase().trim();
         let found = [];
-        let pagesToCheck = Math.min(page, 5); // Check up to 5 pages
+        let pagesToCheck = Math.min(page, 5);
         for (let p = 1; p <= pagesToCheck && found.length < 24; p++) {
             let libUrl = this.baseUrl + '/komik/library?page=' + p + '&sortBy=popular';
             let html = this.getHtml(libUrl);
