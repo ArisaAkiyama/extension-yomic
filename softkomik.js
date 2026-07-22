@@ -1,10 +1,12 @@
+var cachedApiSession = null;
+
 var source = {
     name: "Softkomik",
     baseUrl: "https://softkomik.co",
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.5.0",
+    version: "1.6.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -66,22 +68,22 @@ var source = {
         return items;
     },
 
-    // Helper: normalize base64 token and clean signature
     cleanSessionData: function(rawToken, rawSign) {
         if (!rawToken || !rawSign) return null;
-        // B64 clean
         let cleanToken = rawToken.split('=')[0];
         cleanToken = cleanToken + '='.repeat((4 - (cleanToken.length % 4)) % 4);
-        // Signature clean (take first 64 chars, strip pipe)
         let cleanSig = rawSign.indexOf('|') !== -1 ? rawSign.substring(0, rawSign.indexOf('|')) : rawSign.substring(0, 64);
         return { token: cleanToken, sign: cleanSig };
     },
 
-    // Retrieve a session token for the v2 API following Keiyoushi logic.
-    getApiSession: function(refererUrl) {
-        let ref = refererUrl || (this.baseUrl + '/komik/list');
+    // Retrieve a session token for the v2 API with 1-hour cache
+    getApiSession: function(forceRefresh) {
+        if (!forceRefresh && cachedApiSession && Date.now() < cachedApiSession.ex) {
+            return cachedApiSession;
+        }
 
-        // Step 1: Visit page to seed cookies & Cloudflare bypass
+        let ref = this.baseUrl + '/komik/list';
+        // Seed cookies via GET to list page
         this.getHtml(ref);
 
         let apiHeaders = {
@@ -92,22 +94,29 @@ var source = {
             'Origin': this.baseUrl
         };
 
-        // Try candidate session endpoints
         let sessionEndpoints = [
             this.baseUrl + '/api/session/iuiuiwqw',
-            this.baseUrl + '/api/session/amsnuy',
             this.baseUrl + '/api/session/chapter/oioa',
+            this.baseUrl + '/api/session/amsnuy',
             this.baseUrl + '/api/session/chapter'
         ];
 
-        for (let ep of sessionEndpoints) {
+        for (let i = 0; i < sessionEndpoints.length; i++) {
+            let ep = sessionEndpoints[i];
             let sessBody = this.getHtml(ep, { headers: apiHeaders });
             if (sessBody) {
                 try {
                     let s = JSON.parse(sessBody);
                     if (s && s.token) {
                         let cleaned = this.cleanSessionData(s.token, s.sig || s.sign);
-                        if (cleaned) return cleaned;
+                        if (cleaned) {
+                            cachedApiSession = {
+                                token: cleaned.token,
+                                sign: cleaned.sign,
+                                ex: Date.now() + (60 * 60 * 1000) // 1 hour
+                            };
+                            return cachedApiSession;
+                        }
                     }
                 } catch(e) {}
             }
@@ -144,10 +153,26 @@ var source = {
     },
 
     // Fetch from v2 API with session token. Returns parsed result or null.
-    fetchApi: function(params, refererUrl) {
+    fetchApi: function(params) {
         let apiUrl = this.apiUrl + '/komik?' + params;
 
-        let sess = this.getApiSession(refererUrl);
+        // Try 1: with cached/existing session
+        let sess = this.getApiSession(false);
+        if (sess) {
+            let body = this.getHtml(apiUrl, {
+                headers: {
+                    'X-Token': sess.token,
+                    'X-Sign': sess.sign,
+                    'Referer': this.baseUrl + '/',
+                    'Origin': this.baseUrl
+                }
+            });
+            let result = this.parseApiResponse(body);
+            if (result) return result;
+        }
+
+        // Try 2: force refresh session if cached session was stale/invalid
+        sess = this.getApiSession(true);
         if (sess) {
             let body = this.getHtml(apiUrl, {
                 headers: {
@@ -165,15 +190,13 @@ var source = {
     },
 
     getPopularManga: function(page) {
-        let listUrl = this.baseUrl + '/komik/list';
-        let result = this.fetchApi('page=' + page + '&limit=20&sortBy=popular&showAdult=false', listUrl);
+        let result = this.fetchApi('page=' + page + '&limit=20&sortBy=popular&showAdult=false');
         if (result && result.items.length > 0) return result;
         return this.getMangaList(page, 0, null, null);
     },
 
     getLatestUpdates: function(page) {
-        let listUrl = this.baseUrl + '/komik/list';
-        let result = this.fetchApi('page=' + page + '&limit=20&sortBy=newKomik&showAdult=false', listUrl);
+        let result = this.fetchApi('page=' + page + '&limit=20&sortBy=newKomik&showAdult=false');
         if (result && result.items.length > 0) return result;
         let url = this.baseUrl + "/komik/library?sortBy=newKomik&page=" + page;
         let html = this.getHtml(url);
@@ -212,32 +235,16 @@ var source = {
         if (!query) return this.getPopularManga(page);
 
         // Keiyoushi search API format: name=query&search=true&limit=20&page=1
-        let listUrl = this.baseUrl + '/komik/list?name=' + encodeURIComponent(query);
         let params = 'name=' + encodeURIComponent(query) + '&search=true&limit=20&page=' + page;
-        let result = this.fetchApi(params, listUrl);
+        let result = this.fetchApi(params);
         if (result && result.items.length > 0) return result;
 
-        // Fallback: try ohne search=true parameter
+        // Fallback: try without search=true parameter
         let paramsAlt = 'page=' + page + '&limit=20&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
-        let resultAlt = this.fetchApi(paramsAlt, listUrl);
+        let resultAlt = this.fetchApi(paramsAlt);
         if (resultAlt && resultAlt.items.length > 0) return resultAlt;
 
-        // Fallback: multi-page library search
-        let q = query.toLowerCase().trim();
-        let found = [];
-        let pagesToCheck = Math.min(page, 5);
-        for (let p = 1; p <= pagesToCheck && found.length < 20; p++) {
-            let libUrl = this.baseUrl + '/komik/library?page=' + p + '&sortBy=popular';
-            let html = this.getHtml(libUrl);
-            let items = this.parseMangaCards(html);
-            if (items.length === 0) break;
-            for (let m of items) {
-                if (m.title.toLowerCase().includes(q) || m.id.toLowerCase().replace(/-bahasa-indonesia/g, '').includes(q.replace(/\s+/g, '-'))) {
-                    found.push(m);
-                }
-            }
-        }
-        return { items: found, totalPages: found.length >= 20 ? page + 1 : 1 };
+        return { items: [], totalPages: 1 };
     },
 
     getMangaDetails: function(url) {
