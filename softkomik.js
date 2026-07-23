@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.8.0",
+    version: "1.9.0",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -299,6 +299,99 @@ var source = {
         return manga;
     },
 
+    parseChapterNumber: function(str) {
+        if (!str) return 0;
+        let match = String(str).match(/\d+(?:\.\d+)?/);
+        return match ? parseFloat(match[0]) : 0;
+    },
+
+    formatChapterDisplay: function(str) {
+        if (!str) return "";
+        let parts = String(str).split(".");
+        let numPart = parts[0];
+        let suffix = parts.slice(1).join(".");
+
+        let floatVal = parseFloat(numPart);
+        if (isNaN(floatVal)) return String(str);
+
+        let formatted = (floatVal === Math.floor(floatVal)) ? Math.floor(floatVal).toString() : floatVal.toString();
+        return suffix ? (formatted + "." + suffix) : formatted;
+    },
+
+    parseChapterArray: function(list, mangaId) {
+        let chapters = [];
+        let seenIds = new Set();
+        for (let i = 0; i < list.length; i++) {
+            let item = list[i];
+            let chNumStr = item.chapter || item.ch || item.title || "";
+            if (!chNumStr) continue;
+
+            let chNum = this.parseChapterNumber(chNumStr);
+            let displayNum = this.formatChapterDisplay(chNumStr);
+            let chUrl = mangaId + "/chapter/" + chNumStr;
+
+            if (seenIds.has(chUrl)) continue;
+            seenIds.add(chUrl);
+
+            chapters.push({
+                id: chUrl,
+                url: this.baseUrl + chUrl,
+                name: "Chapter " + displayNum,
+                chapterNumber: chNum,
+                dateUploaded: item.created_at || item.updated_at || ""
+            });
+        }
+        chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
+        return chapters;
+    },
+
+    generateChaptersFromLatestStr: function(latestStr, mangaId, updatedAt) {
+        let chapters = [];
+        let seen = new Set();
+
+        let addCh = (chStr, num, date) => {
+            let chUrl = mangaId + "/chapter/" + chStr;
+            if (seen.has(chUrl)) return;
+            seen.add(chUrl);
+            chapters.push({
+                id: chUrl,
+                url: this.baseUrl + chUrl,
+                name: "Chapter " + this.formatChapterDisplay(chStr),
+                chapterNumber: num,
+                dateUploaded: date || ""
+            });
+        };
+
+        let latestNum = this.parseChapterNumber(latestStr);
+        if (latestNum > 0) {
+            // Preserve raw latestStr if it contains non-integer suffixes like .Tamat, .End, or decimals .5
+            let isRawSpecial = latestStr.includes('.') || isNaN(parseInt(latestStr, 10)) || String(parseInt(latestStr, 10)) !== latestStr;
+            if (isRawSpecial) {
+                addCh(latestStr, latestNum, updatedAt);
+            }
+
+            let maxInt = Math.floor(latestNum);
+            for (let i = maxInt; i >= 1; i--) {
+                let chNumStr3 = i < 10 ? "00" + i : (i < 100 ? "0" + i : "" + i);
+                addCh(chNumStr3, i, updatedAt);
+                addCh(String(i), i, updatedAt);
+
+                // Support half chapters like 1.5, 2.5 if latestStr indicates fractional chapters
+                if (latestStr.includes('.5')) {
+                    if (i > 1) {
+                        let halfVal = i - 0.5;
+                        let prevInt = i - 1;
+                        let halfStr3 = prevInt < 10 ? "00" + prevInt + ".5" : (prevInt < 100 ? "0" + prevInt + ".5" : "" + prevInt + ".5");
+                        addCh(halfStr3, halfVal, updatedAt);
+                        addCh(prevInt + ".5", halfVal, updatedAt);
+                    }
+                }
+            }
+        }
+        chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
+        return chapters;
+    },
+
     getChapterList: function(url) {
         let mangaId = url;
         if (mangaId.startsWith(this.baseUrl)) {
@@ -306,31 +399,48 @@ var source = {
         }
         if (!mangaId.startsWith("/")) mangaId = "/" + mangaId;
 
-        // No headers — uses Cloudflare bypass path
+        let slug = mangaId.replace(/^\//, '');
+
+        // Step 1: Try fetching full chapter list via API if session token is cached
+        let sess = this.getApiSession(false);
+        if (sess) {
+            let apiChUrl = this.apiUrl + "/komik/" + slug + "/chapter?limit=9999999";
+            let body = this.getHtml(apiChUrl, {
+                headers: {
+                    'X-Token': sess.token,
+                    'X-Sign': sess.sign,
+                    'Referer': this.baseUrl + '/',
+                    'Origin': this.baseUrl
+                }
+            });
+            if (body) {
+                try {
+                    let json = JSON.parse(body);
+                    let chapterList = json.chapter || json.data || [];
+                    if (Array.isArray(chapterList) && chapterList.length > 0) {
+                        return this.parseChapterArray(chapterList, mangaId);
+                    }
+                } catch(e) {}
+            }
+        }
+
+        // Step 2: Fetch Next.js HTML page data
         let html = this.getHtml(this.baseUrl + mangaId);
         let data = this.extractNextData(html);
 
-        let chapters = [];
         if (data && data.props && data.props.pageProps && data.props.pageProps.data) {
             let m = data.props.pageProps.data;
-            let latestStr = m.latest_chapter || "0";
-            let latestNum = parseInt(latestStr, 10) || 0;
 
-            if (latestNum > 0) {
-                for (let i = latestNum; i >= 1; i--) {
-                    let chNumStr = i < 10 ? "00" + i : (i < 100 ? "0" + i : "" + i);
-                    let chUrl = mangaId + "/chapter/" + chNumStr;
-                    chapters.push({
-                        id: chUrl,
-                        url: this.baseUrl + chUrl,
-                        name: "Chapter " + i,
-                        chapterNumber: i,
-                        dateUploaded: m.updated_at || ""
-                    });
-                }
+            // Check if m has chapters array directly
+            let rawList = m.chapters || m.chapter || m.chapterList || [];
+            if (Array.isArray(rawList) && rawList.length > 0) {
+                return this.parseChapterArray(rawList, mangaId);
             }
+
+            let latestStr = m.latest_chapter || "0";
+            return this.generateChaptersFromLatestStr(latestStr, mangaId, m.updated_at);
         }
-        return chapters;
+        return [];
     },
 
     getPageList: function(chapterUrl) {
