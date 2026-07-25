@@ -10,11 +10,6 @@
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/kiryuu.js"
   },
   {
-    "name": "klikmanga.js",
-    "version": "1.0.0",
-    "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/klikmanga.js"
-  },
-  {
     "name": "komikcast.js",
     "version": "1.0.0",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/komikcast.js"
@@ -33,11 +28,6 @@
     "name": "maidmanga.js",
     "version": "1.0.5",
     "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/maidmanga.js"
-  },
-  {
-    "name": "manhwaindo.js",
-    "version": "1.0.0",
-    "download_url": "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/manhwaindo.js"
   },
   {
     "name": "mangabat.js",
