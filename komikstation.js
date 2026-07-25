@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.5",
+    version: "1.0.6",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -180,8 +180,8 @@ var source = {
             });
         }
 
-        let nextEl = doc.querySelector("a.next, a.next.page-numbers");
-        let totalPages = nextEl || items.length >= this.pageSize ? page + 1 : page;
+        let nextEl = doc.querySelector(".hpage a, .hpage a.r, .pagination a.next, a.next, a.next.page-numbers");
+        let totalPages = (nextEl || items.length >= 10) ? page + 1 : page;
 
         return {
             items: items,
