@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -132,9 +132,10 @@ var source = {
             let imgEl = card.querySelector("img");
             let thumbnailUrl = "";
             if (imgEl) {
-                thumbnailUrl = imgEl.absUrl("src");
-                if (!thumbnailUrl) thumbnailUrl = imgEl.attr("src") || "";
-                if (!thumbnailUrl) thumbnailUrl = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || "";
+                thumbnailUrl = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-srcset") || imgEl.attr("src") || imgEl.absUrl("src") || "";
+                if (thumbnailUrl.startsWith("data:")) {
+                    thumbnailUrl = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || "";
+                }
             }
 
             let statusVal = 0;
@@ -174,7 +175,10 @@ var source = {
         let title = titleEl ? titleEl.text().trim() : "";
 
         let thumbEl = doc.querySelector(".thumb img, img.wp-post-image");
-        let thumbnailUrl = thumbEl ? (thumbEl.absUrl("src") || thumbEl.attr("src") || thumbEl.attr("data-src") || "") : "";
+        let thumbnailUrl = thumbEl ? (thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || thumbEl.attr("src") || thumbEl.absUrl("src") || "") : "";
+        if (thumbnailUrl.startsWith("data:")) {
+            thumbnailUrl = thumbEl ? (thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || "") : "";
+        }
 
         let descEl = doc.querySelector(".entry-content, div[itemprop='description'], .desc, .synopsis");
         let description = descEl ? descEl.text().trim() : "";
