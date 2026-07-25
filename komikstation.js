@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -129,12 +129,21 @@ var source = {
             }
             if (!title) title = linkEl.text().trim();
 
-            let imgEl = card.querySelector("img");
+            let imgEl = card.querySelector("div.limit img") || card.querySelector(".limit img") || card.querySelector("img");
             let thumbnailUrl = "";
             if (imgEl) {
-                thumbnailUrl = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-srcset") || imgEl.attr("src") || imgEl.absUrl("src") || "";
-                if (thumbnailUrl.startsWith("data:")) {
-                    thumbnailUrl = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || "";
+                thumbnailUrl = imgEl.attr("src") || "";
+                let lazy = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-srcset") || "";
+                if (lazy && !lazy.startsWith("data:")) thumbnailUrl = lazy;
+                
+                if (thumbnailUrl.startsWith("data:") || thumbnailUrl.endsWith(".svg")) {
+                    let fallbacks = [imgEl.attr("data-src"), imgEl.attr("data-lazy-src"), imgEl.attr("src"), imgEl.absUrl("src")];
+                    for (let j = 0; j < fallbacks.length; j++) {
+                        if (fallbacks[j] && !fallbacks[j].startsWith("data:") && !fallbacks[j].endsWith(".svg")) {
+                            thumbnailUrl = fallbacks[j];
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -174,10 +183,22 @@ var source = {
         let titleEl = doc.querySelector("h1.entry-title, h1");
         let title = titleEl ? titleEl.text().trim() : "";
 
-        let thumbEl = doc.querySelector(".thumb img, img.wp-post-image");
-        let thumbnailUrl = thumbEl ? (thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || thumbEl.attr("src") || thumbEl.absUrl("src") || "") : "";
-        if (thumbnailUrl.startsWith("data:")) {
-            thumbnailUrl = thumbEl ? (thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || "") : "";
+        let thumbEl = doc.querySelector(".thumb img") || doc.querySelector("img.wp-post-image") || doc.querySelector("img");
+        let thumbnailUrl = "";
+        if (thumbEl) {
+            thumbnailUrl = thumbEl.attr("src") || "";
+            let lazy = thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || "";
+            if (lazy && !lazy.startsWith("data:")) thumbnailUrl = lazy;
+
+            if (thumbnailUrl.startsWith("data:") || thumbnailUrl.endsWith(".svg")) {
+                let fallbacks = [thumbEl.attr("data-src"), thumbEl.attr("data-lazy-src"), thumbEl.attr("src"), thumbEl.absUrl("src")];
+                for (let j = 0; j < fallbacks.length; j++) {
+                    if (fallbacks[j] && !fallbacks[j].startsWith("data:") && !fallbacks[j].endsWith(".svg")) {
+                        thumbnailUrl = fallbacks[j];
+                        break;
+                    }
+                }
+            }
         }
 
         let descEl = doc.querySelector(".entry-content, div[itemprop='description'], .desc, .synopsis");
