@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.4",
+    version: "1.0.5",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -129,8 +129,17 @@ var source = {
             }
             if (!title) title = linkEl.text().trim();
 
-            let imgEl = card.querySelector("img.ts-post-image, img.wp-post-image, .limit img, .thumb img, img[itemprop='image']");
-            if (!imgEl) imgEl = card.querySelector("img");
+            let imgs = card.querySelectorAll("img");
+            let imgEl = null;
+            for (let j = 0; j < imgs.length; j++) {
+                let s = (imgs[j].attr("data-src") || imgs[j].attr("src") || "").toLowerCase();
+                if (s && !s.includes("/flags/") && !s.includes(".svg") && !s.startsWith("data:image/svg")) {
+                    imgEl = imgs[j];
+                    break;
+                }
+            }
+            if (!imgEl && imgs.length > 0) imgEl = imgs[imgs.length - 1];
+
             let thumbnailUrl = "";
             if (imgEl) {
                 let dataSrc = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-cfsrc") || "";
