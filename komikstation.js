@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.6",
+    version: "1.0.7",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -58,11 +58,11 @@ var source = {
     getSeriesPage: function(page, query, status, genre, type, order) {
         page = Math.max(1, page || 1);
         let url = `${this.baseUrl}/manga/`;
-        if (page > 1) {
-            url += `page/${page}/`;
-        }
 
         let params = [];
+        if (page > 1) {
+            params.push("page=" + page);
+        }
         if (query) params.push("s=" + encodeURIComponent(query));
         if (status) params.push("status=" + encodeURIComponent(status));
 
