@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.2",
+    version: "1.0.0",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -129,20 +129,25 @@ var source = {
             }
             if (!title) title = linkEl.text().trim();
 
-            let imgEl = card.querySelector("div.limit img") || card.querySelector(".limit img") || card.querySelector("img");
+            let imgEl = card.querySelector("img");
             let thumbnailUrl = "";
             if (imgEl) {
-                thumbnailUrl = imgEl.attr("src") || "";
-                let lazy = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-srcset") || "";
-                if (lazy && !lazy.startsWith("data:")) thumbnailUrl = lazy;
-                
-                if (thumbnailUrl.startsWith("data:") || thumbnailUrl.endsWith(".svg")) {
-                    let fallbacks = [imgEl.attr("data-src"), imgEl.attr("data-lazy-src"), imgEl.attr("src"), imgEl.absUrl("src")];
-                    for (let j = 0; j < fallbacks.length; j++) {
-                        if (fallbacks[j] && !fallbacks[j].startsWith("data:") && !fallbacks[j].endsWith(".svg")) {
-                            thumbnailUrl = fallbacks[j];
-                            break;
-                        }
+                let dataSrc = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-cfsrc") || "";
+                let src = imgEl.attr("src") || "";
+
+                if (dataSrc && (!src || src.startsWith("data:"))) {
+                    thumbnailUrl = dataSrc;
+                } else if (src && !src.startsWith("data:")) {
+                    thumbnailUrl = src;
+                } else {
+                    thumbnailUrl = dataSrc || src;
+                }
+
+                if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
+                    if (thumbnailUrl.startsWith("//")) {
+                        thumbnailUrl = "https:" + thumbnailUrl;
+                    } else if (thumbnailUrl.startsWith("/")) {
+                        thumbnailUrl = this.baseUrl + thumbnailUrl;
                     }
                 }
             }
@@ -160,6 +165,7 @@ var source = {
                 title: title.trim(),
                 url: relativeUrl,
                 thumbnailUrl: thumbnailUrl,
+                coverUrl: thumbnailUrl,
                 status: statusVal
             });
         }
@@ -183,21 +189,15 @@ var source = {
         let titleEl = doc.querySelector("h1.entry-title, h1");
         let title = titleEl ? titleEl.text().trim() : "";
 
-        let thumbEl = doc.querySelector(".thumb img") || doc.querySelector("img.wp-post-image") || doc.querySelector("img");
+        let thumbEl = doc.querySelector(".thumb img, img.wp-post-image");
         let thumbnailUrl = "";
         if (thumbEl) {
-            thumbnailUrl = thumbEl.attr("src") || "";
-            let lazy = thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || "";
-            if (lazy && !lazy.startsWith("data:")) thumbnailUrl = lazy;
-
-            if (thumbnailUrl.startsWith("data:") || thumbnailUrl.endsWith(".svg")) {
-                let fallbacks = [thumbEl.attr("data-src"), thumbEl.attr("data-lazy-src"), thumbEl.attr("src"), thumbEl.absUrl("src")];
-                for (let j = 0; j < fallbacks.length; j++) {
-                    if (fallbacks[j] && !fallbacks[j].startsWith("data:") && !fallbacks[j].endsWith(".svg")) {
-                        thumbnailUrl = fallbacks[j];
-                        break;
-                    }
-                }
+            let dataSrc = thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || thumbEl.attr("data-cfsrc") || "";
+            let src = thumbEl.attr("src") || "";
+            thumbnailUrl = (dataSrc && (!src || src.startsWith("data:"))) ? dataSrc : (src || dataSrc);
+            if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
+                if (thumbnailUrl.startsWith("//")) thumbnailUrl = "https:" + thumbnailUrl;
+                else if (thumbnailUrl.startsWith("/")) thumbnailUrl = this.baseUrl + thumbnailUrl;
             }
         }
 
