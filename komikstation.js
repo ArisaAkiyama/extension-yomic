@@ -129,9 +129,8 @@ var source = {
             }
             if (!title) title = linkEl.text().trim();
 
-            let imgEl = card.querySelector("img.ts-post-image, img.wp-post-image, img[itemprop='image'], .limit img");
+            let imgEl = card.querySelector("img.ts-post-image, img.wp-post-image, .limit img, .thumb img, img[itemprop='image']");
             if (!imgEl) imgEl = card.querySelector("img");
-
             let thumbnailUrl = "";
             if (imgEl) {
                 let dataSrc = imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || imgEl.attr("data-cfsrc") || "";
@@ -139,10 +138,10 @@ var source = {
 
                 if (dataSrc && (!src || src.startsWith("data:"))) {
                     thumbnailUrl = dataSrc;
-                } else if (src && !src.startsWith("data:") && !src.includes("/flags/")) {
+                } else if (src && !src.startsWith("data:")) {
                     thumbnailUrl = src;
                 } else {
-                    thumbnailUrl = dataSrc || (src.includes("/flags/") ? "" : src);
+                    thumbnailUrl = dataSrc || src;
                 }
 
                 if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
