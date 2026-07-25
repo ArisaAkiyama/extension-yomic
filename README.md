@@ -9,15 +9,19 @@ Repository: [ArisaAkiyama/extension-yomic](https://github.com/ArisaAkiyama/exten
 | Extension | File | Language | Version | Description |
 |-----------|------|----------|---------|-------------|
 | **Aarlas** | `aarlas.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari Aarlas |
-| **Kiryuu** | `kiryuu.js` | ID | 1.0.2 | Baca komik Bahasa Indonesia dari Kiryuu |
+| **Kiryuu** | `kiryuu.js` | ID | 1.0.3 | Baca komik Bahasa Indonesia dari Kiryuu |
 | **KomikCast** | `komikcast.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari KomikCast |
-| **Komiku** | `komiku.js` | ID | Latest | Baca komik Bahasa Indonesia dari Komiku |
+| **Komiku** | `komiku.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari Komiku |
+| **Luvyaa** | `luvyaa.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari Luvyaa |
 | **MaidManga** | `maidmanga.js` | ID | 1.0.5 | Baca komik Bahasa Indonesia dari MaidManga |
-| **Mangabat** | `mangabat.js` | EN | 1.0.2 | Read English manga from Mangabat |
-| **MangaDex** | `mangadex.js` | EN/ID | 1.0.2 | Read manga from MangaDex with English and Indonesian language switching |
+| **Mangabat** | `mangabat.js` | EN | 1.0.3 | Read English manga from Mangabat |
+| **MangaDex** | `mangadex.js` | EN/ID | 1.0.3 | Read manga from MangaDex with English and Indonesian language switching |
+| **MangaFire** | `mangafire.js` | EN | 1.1.0 | Read English manga from MangaFire |
 | **NHentai.xxx** | `nhentaixxx.js` | EN/JP | 1.0.2 | Read English and Japanese doujinshi from NHentai.xxx |
+| **Ryzukomik** | `ryzukomik.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari Ryzukomik |
+| **Softkomik** | `softkomik.js` | ID | 1.9.0 | Baca komik Bahasa Indonesia dari Softkomik |
 | **WeebCentral** | `weebcentral.js` | EN | 1.0.3 | Read English manga from WeebCentral |
-| **WestManga** | `westmanga.js` | ID | Latest | Baca komik Bahasa Indonesia dari WestManga |
+| **WestManga** | `westmanga.js` | ID | 1.0.0 | Baca komik Bahasa Indonesia dari WestManga |
 
 ## Notes
 
