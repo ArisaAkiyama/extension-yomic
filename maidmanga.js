@@ -7,7 +7,7 @@ var source = {
     author: "DesktopKomik",
     iconBackground: "#1f2937",
     iconForeground: "#60a5fa",
-    isNsfw: true,
+    isNsfw: false,
     isHasMorePages: true,
 
     getPopularManga: function(page) {
