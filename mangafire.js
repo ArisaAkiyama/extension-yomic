@@ -2,7 +2,7 @@ var source = {
     name: "MangaFire",
     baseUrl: "https://mangafire.to",
     language: "en",
-    version: "1.2.0",
+    version: "1.2.1",
     description: "MangaFire English extension with VRF signed API architecture",
     author: "DesktopKomik",
     iconBackground: "#0b0c0f",
@@ -125,28 +125,41 @@ var source = {
     fetchApi: function(path, params) {
         params = params || {};
 
-        // Sort keys alphabetically for VRF path signing
         let paramKeys = Object.keys(params).sort();
-        let queryParts = [];
+        let rawParts = [];
+        let encParts = [];
+        let lastKey = "";
+        let idxIndex = 0;
+
         for (let i = 0; i < paramKeys.length; i++) {
             let k = paramKeys[i];
-            queryParts.push(encodeURIComponent(k) + "=" + encodeURIComponent(params[k]));
+            let v = params[k];
+
+            let signKey = k;
+            if (k.endsWith("[]")) {
+                if (lastKey !== k) idxIndex = 0;
+                lastKey = k;
+                signKey = k.replace("[]", "[" + (idxIndex++) + "]");
+            }
+
+            rawParts.push(signKey + "=" + v);
+            encParts.push(encodeURIComponent(k) + "=" + encodeURIComponent(v));
         }
 
         let signPath = path;
-        if (queryParts.length > 0) signPath += "?" + queryParts.join("&");
+        if (rawParts.length > 0) signPath += "?" + rawParts.join("&");
 
         let vrf = this.signVrf(signPath);
 
         let finalUrl = this.baseUrl + "/api" + path;
-        queryParts.push("vrf=" + encodeURIComponent(vrf));
-        finalUrl += "?" + queryParts.join("&");
+        encParts.push("vrf=" + encodeURIComponent(vrf));
+        finalUrl += "?" + encParts.join("&");
 
         try {
             let response = fetch(finalUrl, {
                 headers: {
                     "Accept": "application/json",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
                 }
             });
             if (!response || response.status !== 200) return null;
