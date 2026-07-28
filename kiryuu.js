@@ -10,7 +10,7 @@ var source = {
     iconUrl: "https://v7.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
     iconBackground: "#3b0764",
     iconForeground: "#f5d0fe",
-    isNsfw: true,
+    isNsfw: false,
     isHasMorePages: true,
 
     pageSize: 24,
