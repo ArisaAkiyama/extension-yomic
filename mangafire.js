@@ -2,7 +2,7 @@ var source = {
     name: "MangaFire",
     baseUrl: "https://mangafire.to",
     language: "en",
-    version: "1.2.2",
+    version: "1.2.3",
     description: "MangaFire English extension with VRF signed API architecture",
     author: "DesktopKomik",
     iconBackground: "#0b0c0f",
@@ -229,7 +229,7 @@ var source = {
             items.push({
                 title: item.title || "",
                 url: url,
-                thumbnailUrl: thumb,
+                thumbnailUrl: thumb ? thumb + "|Referer=https://mangafire.to/" : "",
                 status: item.status === "releasing" ? 1 : (item.status === "finished" ? 2 : 0)
             });
         }
@@ -273,7 +273,7 @@ var source = {
         return {
             title: info.title || "",
             url: url,
-            thumbnailUrl: thumb,
+            thumbnailUrl: thumb ? thumb + "|Referer=https://mangafire.to/" : "",
             author: authorNames.join(", "),
             status: status,
             description: desc,
@@ -331,7 +331,7 @@ var source = {
         let list = data.data.pages;
         for (let i = 0; i < list.length; i++) {
             if (list[i] && list[i].url) {
-                pages.push(list[i].url);
+                pages.push(list[i].url + "|Referer=https://mangafire.to/");
             }
         }
 
