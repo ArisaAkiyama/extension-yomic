@@ -2,7 +2,7 @@ var source = {
     name: "ManhwaIndo",
     baseUrl: "https://www.manhwaindo.my",
     language: "id",
-    version: "1.1.1",
+    version: "1.1.2",
     description: "Baca Manhwa, Manga, dan Manhua Bahasa Indonesia dari ManhwaIndo (MangaThemesia)",
     author: "DesktopKomik",
     iconBackground: "#0d1b2a",
@@ -294,14 +294,15 @@ var source = {
 
     extractThumbnail: function(root) {
         if (!root) return "";
-        // MangaThemesia uses fifu-featured images with data-src lazy loading
-        let img = root.querySelector("img[fifu-featured], .ts-post-image, img.wp-post-image, img");
-        if (!img) return "";
-        let src = img.attr("data-src") || img.attr("data-lazy-src") || img.attr("data-cfsrc") || img.attr("src") || "";
-        // Skip SVG placeholders
-        if (!src || src.startsWith("data:image/svg") || src.includes(".svg")) return "";
-        let fullUrl = this.toHttps(src.startsWith("//") ? "https:" + src : (!src.startsWith("http") ? this.baseUrl + src : src));
-        return fullUrl + "|Referer=" + this.baseUrl + "/";
+        let imgs = root.querySelectorAll(".thumb img, .cover img, .series-thumb img, img[fifu-featured], .ts-post-image, img.wp-post-image, img");
+        for (let i = 0; i < imgs.length; i++) {
+            let img = imgs[i];
+            let src = img.attr("data-src") || img.attr("data-lazy-src") || img.attr("data-cfsrc") || img.attr("src") || "";
+            if (!src || src.startsWith("data:image/svg") || src.includes(".svg") || src.includes("logo") || src.includes("banner")) continue;
+            let fullUrl = this.toHttps(src.startsWith("//") ? "https:" + src : (!src.startsWith("http") ? this.baseUrl + src : src));
+            return fullUrl + "|Referer=" + this.baseUrl + "/";
+        }
+        return "";
     },
 
     parseIdDate: function(value) {
