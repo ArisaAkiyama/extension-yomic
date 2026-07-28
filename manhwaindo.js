@@ -2,7 +2,7 @@ var source = {
     name: "ManhwaIndo",
     baseUrl: "https://www.manhwaindo.my",
     language: "id",
-    version: "1.1.0",
+    version: "1.1.1",
     description: "Baca Manhwa, Manga, dan Manhua Bahasa Indonesia dari ManhwaIndo (MangaThemesia)",
     author: "DesktopKomik",
     iconBackground: "#0d1b2a",
@@ -300,7 +300,8 @@ var source = {
         let src = img.attr("data-src") || img.attr("data-lazy-src") || img.attr("data-cfsrc") || img.attr("src") || "";
         // Skip SVG placeholders
         if (!src || src.startsWith("data:image/svg") || src.includes(".svg")) return "";
-        return this.toHttps(src.startsWith("//") ? "https:" + src : (!src.startsWith("http") ? this.baseUrl + src : src));
+        let fullUrl = this.toHttps(src.startsWith("//") ? "https:" + src : (!src.startsWith("http") ? this.baseUrl + src : src));
+        return fullUrl + "|Referer=" + this.baseUrl + "/";
     },
 
     parseIdDate: function(value) {
