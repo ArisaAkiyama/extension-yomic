@@ -2,7 +2,7 @@ var source = {
     name: "MangaFire",
     baseUrl: "https://mangafire.to",
     language: "en",
-    version: "1.2.1",
+    version: "1.2.2",
     description: "MangaFire English extension with VRF signed API architecture",
     author: "DesktopKomik",
     iconBackground: "#0b0c0f",
@@ -88,18 +88,22 @@ var source = {
 
     base64ToBytes: function(b64) {
         let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        let str = b64.replace(/[^A-Za-z0-9\+\/]/g, "");
-        let len = str.length;
         let bytes = [];
-        for (let i = 0; i < len; i += 4) {
-            let b1 = chars.indexOf(str.charAt(i));
-            let b2 = chars.indexOf(str.charAt(i + 1));
-            let b3 = chars.indexOf(str.charAt(i + 2));
-            let b4 = chars.indexOf(str.charAt(i + 3));
-            let num = (b1 << 18) | (b2 << 12) | ((b3 & 63) << 6) | (b4 & 63);
+        for (let i = 0; i < b64.length; i += 4) {
+            let c1 = b64.charAt(i);
+            let c2 = b64.charAt(i + 1);
+            let c3 = b64.charAt(i + 2);
+            let c4 = b64.charAt(i + 3);
+
+            let b1 = chars.indexOf(c1);
+            let b2 = chars.indexOf(c2);
+            let b3 = c3 === "=" ? 0 : chars.indexOf(c3);
+            let b4 = c4 === "=" ? 0 : chars.indexOf(c4);
+
+            let num = (b1 << 18) | (b2 << 12) | (b3 << 6) | b4;
             bytes.push((num >> 16) & 255);
-            if (b3 !== -1 && str.charAt(i + 2) !== "=") bytes.push((num >> 8) & 255);
-            if (b4 !== -1 && str.charAt(i + 3) !== "=") bytes.push(num & 255);
+            if (c3 !== "=") bytes.push((num >> 8) & 255);
+            if (c4 !== "=") bytes.push(num & 255);
         }
         return new Uint8Array(bytes);
     },
