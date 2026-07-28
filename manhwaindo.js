@@ -2,45 +2,46 @@ var source = {
     name: "ManhwaIndo",
     baseUrl: "https://www.manhwaindo.my",
     language: "id",
-    version: "1.0.1",
-    description: "Baca Manhwa, Manga, dan Manhua Bahasa Indonesia dari ManhwaIndo",
+    version: "1.1.0",
+    description: "Baca Manhwa, Manga, dan Manhua Bahasa Indonesia dari ManhwaIndo (MangaThemesia)",
     author: "DesktopKomik",
     iconBackground: "#0d1b2a",
     iconForeground: "#ff6b35",
     isNsfw: false,
     isHasMorePages: true,
-    pageSize: 20,
+    pageSize: 18,
+
+    // -- MangaThemesia: manga series directory is /series/
+    mangaUrlDirectory: "/series/",
 
     genres: [
-        "4-Koma", "Action", "Adult", "Adventure", "Boys Love", "Comedy",
+        "Action", "Adult", "Adventure", "Boys Love", "Comedy",
         "Cooking", "Crime", "Cultivation", "Demons", "Drama", "Ecchi",
         "Fantasy", "Game", "Gender Bender", "Girls Love", "Gore", "Harem",
         "Historical", "Horror", "Isekai", "Josei", "Loli", "Magic",
         "Martial Arts", "Mature", "Mecha", "Medical", "Military",
         "Monster Girls", "Music", "Mystery", "Office Worker", "One Shot",
         "Parody", "Police", "Psychological", "Reincarnation", "Romance",
-        "Romcom", "School", "School Life", "Sci-Fi", "Seinen", "Shota",
+        "Romcom", "School", "School Life", "Sci-Fi", "Seinen",
         "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Slice of Life",
         "Smut", "Sports", "Super Power", "Supernatural", "Survival",
         "Thriller", "Time Travel", "Tragedy", "Vampire", "Webtoon",
         "Wuxia", "Xianxia", "Yaoi", "Yuri", "Zombie",
-        "Action Adventure", "Fantasy Romance", "Isekai Fantasy",
-        "Reincarnation Fantasy", "Romantic Comedy", "School Romance",
-        "Superhero", "Villainess", "Reverse Harem", "Dungeon",
-        "System", "Tower", "Leveling", "VRMMO", "Apocalypse",
-        "Post-Apocalyptic", "Time Loop", "Regression", "Transmigration",
-        "Second Life", "Awakening", "Hunter"
+        "Reverse Harem", "Dungeon", "System", "Tower", "Leveling",
+        "Apocalypse", "Regression", "Transmigration", "Awakening", "Hunter"
     ],
 
     formats: ["Manga", "Manhwa", "Manhua", "Webtoon", "Novel"],
 
     typeMap: {
-        "Manga": "manga",
-        "Manhwa": "manhwa",
-        "Manhua": "manhua",
-        "Webtoon": "webtoon",
-        "Novel": "novel"
+        "Manga": "Manga",
+        "Manhwa": "Manhwa",
+        "Manhua": "Manhua",
+        "Webtoon": "Webtoon",
+        "Novel": "Novel"
     },
+
+    // ── Entry Points ─────────────────────────────────────────────────────────
 
     getPopularManga: function(page) {
         return this.getSeriesPage(page, "", "", null, null, "popular");
@@ -59,16 +60,18 @@ var source = {
         if (status === 1) statusStr = "ongoing";
         else if (status === 2) statusStr = "completed";
         else if (status === 3) statusStr = "hiatus";
-
         return this.getSeriesPage(page, "", statusStr, genre, type, "");
     },
+
+    // ── Manga Listing ─────────────────────────────────────────────────────────
 
     getSeriesPage: function(page, query, status, genre, type, order) {
         page = Math.max(1, page || 1);
 
-        // Try Madara/MangaThemesia style first
-        let url = this.baseUrl + "/manga/";
+        // MangaThemesia: /series/ is the manga directory
+        let url = this.baseUrl + this.mangaUrlDirectory;
         let params = [];
+
         if (page > 1) params.push("page=" + page);
         if (query) params.push("s=" + encodeURIComponent(query));
         if (status) params.push("status=" + encodeURIComponent(status));
@@ -77,7 +80,7 @@ var source = {
         if (type) {
             let arr = Array.isArray(type) ? type : [type];
             for (let i = 0; i < arr.length; i++) {
-                let val = this.typeMap[arr[i]] || arr[i].toLowerCase();
+                let val = this.typeMap[arr[i]] || arr[i];
                 params.push("type=" + encodeURIComponent(val));
             }
         }
@@ -92,20 +95,11 @@ var source = {
 
         if (params.length > 0) url += "?" + params.join("&");
 
-        let response = fetch(url);
-        if (response.status !== 200) {
-            // Fallback: try root with query param (ZManga style)
-            let altUrl = this.baseUrl + (page > 1 ? "/page/" + page + "/" : "/") + (query ? "?s=" + encodeURIComponent(query) : "");
-            response = fetch(altUrl);
-            if (response.status !== 200) return { items: [], totalPages: page };
-        }
+        let response = this.fetchPage(url);
+        if (!response || response.status !== 200) return { items: [], totalPages: page };
 
         let doc = Html.parse(response.body, url);
-        // Try multiple card selectors
-        let cards = doc.querySelectorAll(
-            "div.bsx, div.utao, div.animposx, div.manga-item, .page-item-detail, " +
-            ".flexbox2-item, .flexbox3-item, .flexbox4-item, .searchbox, article"
-        );
+        let cards = doc.querySelectorAll("div.bsx");
         let items = [];
 
         for (let i = 0; i < cards.length; i++) {
@@ -113,135 +107,122 @@ var source = {
             let linkEl = card.querySelector("a");
             if (!linkEl) continue;
 
-            let href = linkEl.attr("href");
-            if (!href || href === "#") continue;
+            let href = linkEl.attr("href") || "";
+            if (!href || !href.includes("/series/")) continue;
 
             let relativeUrl = href.startsWith(this.baseUrl) ? href.substring(this.baseUrl.length) : href;
 
             let title = linkEl.attr("title") || "";
             if (!title) {
-                let ttEl = card.querySelector(".tt, .title, .flexbox2-title .title, .flexbox3-title .title, h3, h2");
+                let ttEl = card.querySelector(".tt, .bigor .tt, h2");
                 if (ttEl) title = ttEl.text().trim();
             }
-            if (!title) {
-                let imgEl = card.querySelector("img");
-                if (imgEl) title = imgEl.attr("alt") || "";
-            }
-            if (!title) title = linkEl.text().trim();
 
-            let thumbnailUrl = "";
-            let imgs = card.querySelectorAll("img");
-            for (let j = 0; j < imgs.length; j++) {
-                let s = imgs[j].attr("data-src") || imgs[j].attr("data-lazy-src") || imgs[j].attr("src") || "";
-                if (s && !s.includes("/flags/") && !s.includes(".svg") && !s.startsWith("data:image/svg")) {
-                    thumbnailUrl = s;
-                    break;
-                }
-            }
-            if (thumbnailUrl) {
-                if (thumbnailUrl.startsWith("http://")) {
-                    thumbnailUrl = "https://" + thumbnailUrl.substring(7);
-                } else if (!thumbnailUrl.startsWith("http")) {
-                    thumbnailUrl = thumbnailUrl.startsWith("//") ? "https:" + thumbnailUrl : this.baseUrl + thumbnailUrl;
-                }
-            }
+            let thumbnailUrl = this.extractThumbnail(card);
 
             let statusVal = 0;
-            let statusEl = card.querySelector(".status, .epxs, .mg_status");
-            if (statusEl) {
-                let sText = (statusEl.text() || "").toLowerCase();
-                if (sText.includes("ongoing")) statusVal = 1;
-                else if (sText.includes("completed") || sText.includes("end")) statusVal = 2;
+            let typnEl = card.querySelector(".limit .type, .epxs, .status");
+            if (typnEl) {
+                let s = (typnEl.text() || "").toLowerCase();
+                if (s.includes("ongoing") || s.includes("berlangsung")) statusVal = 1;
+                else if (s.includes("completed") || s.includes("selesai") || s.includes("tamat")) statusVal = 2;
+                else if (s.includes("hiatus")) statusVal = 3;
             }
 
             items.push({ title: title.trim(), url: relativeUrl, thumbnailUrl: thumbnailUrl, status: statusVal });
         }
 
-        let nextEl = doc.querySelector(".hpage a.r, .pagination a.next, a.next.page-numbers, a[rel='next']");
-        let totalPages = (nextEl || items.length >= 10) ? page + 1 : page;
+        // Detect next page
+        let nextEl = doc.querySelector("a.next, a[rel='next'], .hpage a.r");
+        let totalPages = (nextEl || items.length >= this.pageSize) ? page + 1 : page;
 
         return { items: items, totalPages: totalPages };
     },
 
+    // ── Manga Details ─────────────────────────────────────────────────────────
+
     getMangaDetails: function(url) {
         let fullUrl = url.startsWith("http") ? url : this.baseUrl + url;
-        let response = fetch(fullUrl);
-        if (response.status !== 200) return {};
+        let response = this.fetchPage(fullUrl);
+        if (!response || response.status !== 200) return {};
 
         let doc = Html.parse(response.body, fullUrl);
 
+        // Title
         let title = "";
-        let titleEl = doc.querySelector("h1.entry-title, h1.manga-title, .series-title h2, h1");
-        if (titleEl) title = titleEl.text().trim().replace(/\s*bahasa\s+indonesia.*/i, "");
+        let titleEl = doc.querySelector("h1.entry-title, .entry-title, h1");
+        if (titleEl) title = titleEl.text().trim().replace(/\s*Bahasa Indonesia.*/i, "").trim();
 
-        let thumbnailUrl = "";
-        let thumbEl = doc.querySelector(".thumb img, .cover img, .series-thumb img, img.wp-post-image");
-        if (thumbEl) {
-            thumbnailUrl = thumbEl.attr("data-src") || thumbEl.attr("data-lazy-src") || thumbEl.attr("src") || "";
-            if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
-                thumbnailUrl = thumbnailUrl.startsWith("//") ? "https:" + thumbnailUrl : this.baseUrl + thumbnailUrl;
-            }
-        }
+        // Thumbnail
+        let thumbnailUrl = this.extractThumbnail(doc);
 
-        let descEl = doc.querySelector(".entry-content, div[itemprop='description'], .desc, .synopsis, .series-synops, .series-synopsis");
+        // Description
+        let descEl = doc.querySelector(".entry-content, .desc, .synopsis");
         let description = descEl ? descEl.text().trim() : "";
 
+        // Author
         let author = "";
-        let infoEls = doc.querySelectorAll(".tsinfo .imethod, .infotable tr, .spe span, .imptdt, .series-infoz.block span");
+        let infoEls = doc.querySelectorAll(".tsinfo .imptdt, .spe span, .infotable tr td");
         for (let i = 0; i < infoEls.length; i++) {
-            let txt = infoEls[i].text();
-            if (txt.includes("Author") || txt.includes("Pengarang") || txt.includes("Komikus")) {
-                author = txt.replace(/Author|Pengarang|Komikus|:|;/gi, "").trim();
+            let txt = infoEls[i].text() || "";
+            if (/(Author|Pengarang|Komikus)/i.test(txt)) {
+                author = txt.replace(/(Author|Pengarang|Komikus)\s*:?\s*/i, "").trim();
                 break;
             }
         }
 
+        // Status
         let status = 0;
-        let bodyLower = response.body.toLowerCase();
-        if (bodyLower.includes("status: ongoing") || bodyLower.includes(">ongoing<") || bodyLower.includes("on going")) status = 1;
-        else if (bodyLower.includes("status: completed") || bodyLower.includes(">completed<") || bodyLower.includes("tamat")) status = 2;
-        else if (bodyLower.includes("status: hiatus")) status = 3;
+        let statusEl = doc.querySelector(".tsinfo .imptdt:last-child, .status");
+        let statusTxt = statusEl ? statusEl.text().toLowerCase() : "";
+        if (!statusTxt) statusTxt = (response.body || "").toLowerCase();
+        if (statusTxt.includes("ongoing") || statusTxt.includes("on going")) status = 1;
+        else if (statusTxt.includes("completed") || statusTxt.includes("tamat")) status = 2;
+        else if (statusTxt.includes("hiatus")) status = 3;
 
+        // Genres
         let genres = [];
-        let genreEls = doc.querySelectorAll(".mgen a, .genres-container a, a[rel='tag'], .genre-info a, .series-genres a");
+        let genreEls = doc.querySelectorAll(".mgen a, .genre-info a, a[rel='tag']");
         for (let i = 0; i < genreEls.length; i++) {
-            let gText = genreEls[i].text().trim();
-            if (gText && genres.indexOf(gText) === -1) genres.push(gText);
+            let g = genreEls[i].text().trim();
+            if (g && genres.indexOf(g) === -1) genres.push(g);
         }
 
         return { title: title, url: url, thumbnailUrl: thumbnailUrl, author: author, status: status, description: description, genre: genres };
     },
 
+    // ── Chapter List ──────────────────────────────────────────────────────────
+
     getChapterList: function(mangaUrl) {
         let fullUrl = mangaUrl.startsWith("http") ? mangaUrl : this.baseUrl + mangaUrl;
-        let response = fetch(fullUrl);
-        if (response.status !== 200) return [];
+        let response = this.fetchPage(fullUrl);
+        if (!response || response.status !== 200) return [];
 
         let doc = Html.parse(response.body, fullUrl);
-        // Try Madara-style then ZManga-style
-        let items = doc.querySelectorAll("#chapterlist ul li, .eplister ul li, .series-chapterlist a, .chapters a");
+        // MangaThemesia: #chapterlist ul li > .eph-num > a
+        let items = doc.querySelectorAll("#chapterlist li, .eplister li");
         let chapters = [];
         let seen = {};
 
         for (let i = 0; i < items.length; i++) {
             let item = items[i];
-            let linkEl = item.tagName && item.tagName.toLowerCase() === "a" ? item : item.querySelector("a");
+            let linkEl = item.querySelector("a");
             if (!linkEl) continue;
 
-            let href = linkEl.attr("href");
+            let href = linkEl.attr("href") || "";
             if (!href || href === "#" || seen[href]) continue;
             seen[href] = true;
 
+            // MangaThemesia chapter URLs are flat: /manga-slug-chapter-N/
             let relativeUrl = href.startsWith(this.baseUrl) ? href.substring(this.baseUrl.length) : href;
 
-            let nameEl = item.querySelector ? item.querySelector(".chapternum, .chapter-title") : null;
+            let nameEl = item.querySelector(".chapternum");
             let name = nameEl ? nameEl.text().trim() : linkEl.text().trim().replace(/\s+/g, " ").trim();
 
             let dateUpload = 0;
-            let dateEl = item.querySelector ? item.querySelector(".chapterdate, .chapter-date, .date, time") : null;
+            let dateEl = item.querySelector(".chapterdate");
             if (dateEl) {
-                let parsedDate = Date.parse(dateEl.text().trim());
-                if (!isNaN(parsedDate)) dateUpload = parsedDate;
+                dateUpload = this.parseIdDate(dateEl.text().trim());
             }
 
             if (name) chapters.push({ name: name, url: relativeUrl, dateUpload: dateUpload });
@@ -250,41 +231,107 @@ var source = {
         return chapters;
     },
 
+    // ── Page List ─────────────────────────────────────────────────────────────
+
     getPageList: function(chapterUrl) {
         let fullUrl = chapterUrl.startsWith("http") ? chapterUrl : this.baseUrl + chapterUrl;
-        let response = fetch(fullUrl);
-        if (response.status !== 200) return [];
+        let response = this.fetchPage(fullUrl);
+        if (!response || response.status !== 200) return [];
 
         let pages = [];
+        let referer = this.baseUrl + "/";
 
-        // 1. Try ts_reader JS script parsing
-        let match = response.body.match(/ts_reader\.run\((.*?)\);/);
+        // 1. MangaThemesia: ts_reader.run({...})
+        let match = (response.body || "").match(/ts_reader\.run\((\{[\s\S]*?\})\);/);
         if (match && match[1]) {
             try {
                 let json = JSON.parse(match[1]);
-                if (json && json.sources && json.sources.length > 0 && json.sources[0].images) {
-                    let imgs = json.sources[0].images;
+                if (json && json.sources && json.sources.length > 0) {
+                    let imgs = json.sources[0].images || [];
                     for (let i = 0; i < imgs.length; i++) {
-                        if (imgs[i]) pages.push(imgs[i] + "|Referer=" + this.baseUrl + "/");
+                        if (imgs[i]) {
+                            let imgUrl = this.toHttps(imgs[i]);
+                            pages.push(imgUrl + "|Referer=" + referer);
+                        }
                     }
                     if (pages.length > 0) return pages;
                 }
             } catch (e) {}
         }
 
-        // 2. Fallback to HTML DOM
+        // 2. Fallback: #readerarea img
         let doc = Html.parse(response.body, fullUrl);
-        let imgEls = doc.querySelectorAll("#readerarea img, .entry-content img, .reader-area img, .chapter-content img");
+        let imgEls = doc.querySelectorAll("#readerarea img, .entry-content img");
         let seen = {};
         for (let i = 0; i < imgEls.length; i++) {
             let img = imgEls[i];
-            let src = img.absUrl("src") || img.attr("data-src") || img.attr("data-lazy-src") || img.attr("src") || "";
-            if (src && !src.includes("pebaikan.png") && !seen[src]) {
-                seen[src] = true;
-                pages.push(src.trim() + "|Referer=" + this.baseUrl + "/");
-            }
+            let src = img.absUrl("src") || img.attr("data-src") || img.attr("data-lazy-src") || "";
+            if (!src || seen[src]) continue;
+            seen[src] = true;
+            let imgUrl = this.toHttps(src.trim());
+            pages.push(imgUrl + "|Referer=" + referer);
         }
 
         return pages;
+    },
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    fetchPage: function(url) {
+        try {
+            let response = fetch(url);
+            return response;
+        } catch(e) {
+            return null;
+        }
+    },
+
+    toHttps: function(url) {
+        if (!url) return url;
+        if (url.startsWith("http://")) return "https://" + url.substring(7);
+        return url;
+    },
+
+    extractThumbnail: function(root) {
+        if (!root) return "";
+        // MangaThemesia uses fifu-featured images with data-src lazy loading
+        let img = root.querySelector("img[fifu-featured], .ts-post-image, img.wp-post-image, img");
+        if (!img) return "";
+        let src = img.attr("data-src") || img.attr("data-lazy-src") || img.attr("data-cfsrc") || img.attr("src") || "";
+        // Skip SVG placeholders
+        if (!src || src.startsWith("data:image/svg") || src.includes(".svg")) return "";
+        return this.toHttps(src.startsWith("//") ? "https:" + src : (!src.startsWith("http") ? this.baseUrl + src : src));
+    },
+
+    parseIdDate: function(value) {
+        if (!value) return 0;
+        value = value.trim();
+        let months = {
+            "januari": 0, "jan": 0, "january": 0,
+            "februari": 1, "feb": 1, "february": 1,
+            "maret": 2, "mar": 2, "march": 2,
+            "april": 3, "apr": 3,
+            "mei": 4, "may": 4,
+            "juni": 5, "jun": 5, "june": 5,
+            "juli": 6, "jul": 6, "july": 6,
+            "agustus": 7, "agu": 7, "august": 7, "aug": 7,
+            "september": 8, "sep": 8,
+            "oktober": 9, "okt": 9, "october": 9, "oct": 9,
+            "november": 10, "nov": 10,
+            "desember": 11, "des": 11, "december": 11, "dec": 11
+        };
+        // "2 Desember 2025" or "December 2, 2025"
+        let m1 = value.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (m1) {
+            let mon = months[m1[2].toLowerCase()];
+            if (mon !== undefined) return new Date(parseInt(m1[3]), mon, parseInt(m1[1])).getTime();
+        }
+        let m2 = value.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+        if (m2) {
+            let mon = months[m2[1].toLowerCase()];
+            if (mon !== undefined) return new Date(parseInt(m2[3]), mon, parseInt(m2[2])).getTime();
+        }
+        let t = Date.parse(value);
+        return isNaN(t) ? 0 : t;
     }
 };
