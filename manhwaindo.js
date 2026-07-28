@@ -2,7 +2,7 @@ var source = {
     name: "ManhwaIndo",
     baseUrl: "https://www.manhwaindo.my",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Baca Manhwa, Manga, dan Manhua Bahasa Indonesia dari ManhwaIndo",
     author: "DesktopKomik",
     iconBackground: "#0d1b2a",
@@ -138,8 +138,12 @@ var source = {
                     break;
                 }
             }
-            if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
-                thumbnailUrl = thumbnailUrl.startsWith("//") ? "https:" + thumbnailUrl : this.baseUrl + thumbnailUrl;
+            if (thumbnailUrl) {
+                if (thumbnailUrl.startsWith("http://")) {
+                    thumbnailUrl = "https://" + thumbnailUrl.substring(7);
+                } else if (!thumbnailUrl.startsWith("http")) {
+                    thumbnailUrl = thumbnailUrl.startsWith("//") ? "https:" + thumbnailUrl : this.baseUrl + thumbnailUrl;
+                }
             }
 
             let statusVal = 0;
