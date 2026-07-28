@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.9.0",
+    version: "1.9.1",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -318,9 +318,16 @@ var source = {
         return suffix ? (formatted + "." + suffix) : formatted;
     },
 
+    parseDateToMs: function(str) {
+        if (!str) return 0;
+        if (typeof str === 'number') return str;
+        let ms = Date.parse(str);
+        return (!isNaN(ms) && ms > 0) ? ms : 0;
+    },
+
     parseChapterArray: function(list, mangaId) {
         let chapters = [];
-        let seenIds = new Set();
+        let seenNumbers = new Set();
         for (let i = 0; i < list.length; i++) {
             let item = list[i];
             let chNumStr = item.chapter || item.ch || item.title || "";
@@ -330,15 +337,15 @@ var source = {
             let displayNum = this.formatChapterDisplay(chNumStr);
             let chUrl = mangaId + "/chapter/" + chNumStr;
 
-            if (seenIds.has(chUrl)) continue;
-            seenIds.add(chUrl);
+            if (seenNumbers.has(chNum)) continue;
+            seenNumbers.add(chNum);
 
             chapters.push({
                 id: chUrl,
                 url: this.baseUrl + chUrl,
                 name: "Chapter " + displayNum,
                 chapterNumber: chNum,
-                dateUploaded: item.created_at || item.updated_at || ""
+                dateUploaded: this.parseDateToMs(item.created_at || item.updated_at)
             });
         }
         chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
@@ -347,24 +354,25 @@ var source = {
 
     generateChaptersFromLatestStr: function(latestStr, mangaId, updatedAt) {
         let chapters = [];
-        let seen = new Set();
+        let seenNumbers = new Set();
+        let parsedDateMs = this.parseDateToMs(updatedAt);
 
         let addCh = (chStr, num, date) => {
+            if (seenNumbers.has(num)) return;
+            seenNumbers.add(num);
+
             let chUrl = mangaId + "/chapter/" + chStr;
-            if (seen.has(chUrl)) return;
-            seen.add(chUrl);
             chapters.push({
                 id: chUrl,
                 url: this.baseUrl + chUrl,
                 name: "Chapter " + this.formatChapterDisplay(chStr),
                 chapterNumber: num,
-                dateUploaded: date || ""
+                dateUploaded: date || parsedDateMs || 0
             });
         };
 
         let latestNum = this.parseChapterNumber(latestStr);
         if (latestNum > 0) {
-            // Preserve raw latestStr if it contains non-integer suffixes like .Tamat, .End, or decimals .5
             let isRawSpecial = latestStr.includes('.') || isNaN(parseInt(latestStr, 10)) || String(parseInt(latestStr, 10)) !== latestStr;
             if (isRawSpecial) {
                 addCh(latestStr, latestNum, updatedAt);
@@ -372,20 +380,7 @@ var source = {
 
             let maxInt = Math.floor(latestNum);
             for (let i = maxInt; i >= 1; i--) {
-                let chNumStr3 = i < 10 ? "00" + i : (i < 100 ? "0" + i : "" + i);
-                addCh(chNumStr3, i, updatedAt);
                 addCh(String(i), i, updatedAt);
-
-                // Support half chapters like 1.5, 2.5 if latestStr indicates fractional chapters
-                if (latestStr.includes('.5')) {
-                    if (i > 1) {
-                        let halfVal = i - 0.5;
-                        let prevInt = i - 1;
-                        let halfStr3 = prevInt < 10 ? "00" + prevInt + ".5" : (prevInt < 100 ? "0" + prevInt + ".5" : "" + prevInt + ".5");
-                        addCh(halfStr3, halfVal, updatedAt);
-                        addCh(prevInt + ".5", halfVal, updatedAt);
-                    }
-                }
             }
         }
         chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
