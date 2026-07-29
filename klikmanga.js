@@ -2,7 +2,7 @@ var source = {
     name: "KlikManga",
     baseUrl: "https://klikmanga.org",
     language: "id",
-    version: "1.2.0",
+    version: "1.2.1",
     description: "Baca Manga, Manhwa, dan Manhua Bahasa Indonesia dari KlikManga (Madara)",
     author: "DesktopKomik",
     iconBackground: "#1a1a2e",
@@ -10,9 +10,8 @@ var source = {
     isNsfw: false,
     isHasMorePages: true,
 
-    // ── Madara core settings (KlikManga.kt overrides) ─────────────────────────
+    // ── Madara core settings ──────────────────────────────────────────────────
     mangaSubString: "daftar-komik",
-    // useLoadMoreRequest = LoadMoreStrategy.Always
 
     // ── Date Parsing ──────────────────────────────────────────────────────────
 
@@ -51,7 +50,6 @@ var source = {
             "desember":11,"des":11,"dec":11
         };
 
-        // "MMMM dd, yyyy" or "dd MMMM yyyy"
         let m = dateStr.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
         if (m) {
             let mo = months[m[1].toLowerCase()];
@@ -91,10 +89,7 @@ var source = {
         } catch (e) { return null; }
     },
 
-    // ── Madara loadMoreRequest (matches Madara.kt exactly) ───────────────────
-    // template = "madara-core/content/content-archive"
-    // popular  → meta_key = _wp_manga_views
-    // latest   → meta_key = _latest_update
+    // ── Madara loadMoreRequest ────────────────────────────────────────────────
 
     loadMoreRequest: function(page, popular) {
         let metaKey = popular ? "_wp_manga_views" : "_latest_update";
@@ -125,24 +120,25 @@ var source = {
         }
 
         let doc = Html.parse(html, this.baseUrl);
-        // Madara: "div.page-item-detail:not(:has(a[href*='bilibilicomics.com'])).manga , .manga__item"
-        let cards = doc.querySelectorAll("div.page-item-detail, .manga__item");
+        let cards = doc.querySelectorAll("div.page-item-detail, .manga__item, .badge-pos-1");
         let items = [];
 
         for (let i = 0; i < cards.length; i++) {
             let card = cards[i];
 
-            // Title + URL from "div.post-title a"
-            let linkEl = card.querySelector("div.post-title a, h3.h5 a, h3 a");
+            let linkEl = card.querySelector("div.post-title a, h3.h5 a, h3 a, .item-thumb a");
             if (!linkEl) continue;
             let href = linkEl.attr("href") || linkEl.attr("abs:href") || "";
             if (!href || href === "#") continue;
             let mangaUrl = href.startsWith(this.baseUrl) ? href.substring(this.baseUrl.length) : href;
 
             let title = linkEl.attr("title") || linkEl.text().trim();
+            if (!title) {
+                let tEl = card.querySelector("div.post-title, h3");
+                if (tEl) title = tEl.text().trim();
+            }
             if (!title) continue;
 
-            // Thumbnail — Madara lazy loads via data-src
             let thumbnailUrl = "";
             let img = card.querySelector("img");
             if (img) {
@@ -153,7 +149,6 @@ var source = {
             items.push({ title: title, url: mangaUrl, thumbnailUrl: thumbnailUrl, status: 0 });
         }
 
-        // No-posts signal or empty → last page
         let noMore = html.includes("class=\"no-posts\"") || html.includes("no-posts") || items.length === 0;
         let totalPages = noMore ? page : page + 1;
 
@@ -164,14 +159,32 @@ var source = {
 
     getPopularManga: function(page) {
         page = Math.max(1, page || 1);
+        // Try AJAX loadMore first
         let html = this.loadMoreRequest(page, true);
-        return this.parseMangaList(html, page);
+        let result = this.parseMangaList(html, page);
+        if (result.items.length > 0) return result;
+
+        // Fallback to GET page
+        let pagePath = page > 1 ? "page/" + page + "/" : "";
+        let url = this.baseUrl + "/" + this.mangaSubString + "/" + pagePath + "?m_orderby=views";
+        let res = this.fetchHtml(url);
+        if (!res) return { items: [], totalPages: page };
+        return this.parseMangaList(res.body, page);
     },
 
     getLatestUpdates: function(page) {
         page = Math.max(1, page || 1);
+        // Try AJAX loadMore first
         let html = this.loadMoreRequest(page, false);
-        return this.parseMangaList(html, page);
+        let result = this.parseMangaList(html, page);
+        if (result.items.length > 0) return result;
+
+        // Fallback to GET page
+        let pagePath = page > 1 ? "page/" + page + "/" : "";
+        let url = this.baseUrl + "/" + this.mangaSubString + "/" + pagePath + "?m_orderby=latest";
+        let res = this.fetchHtml(url);
+        if (!res) return { items: [], totalPages: page };
+        return this.parseMangaList(res.body, page);
     },
 
     getSearchManga: function(query, page) {
@@ -179,8 +192,8 @@ var source = {
         query = (query || "").trim();
         if (!query) return this.getPopularManga(page);
 
-        // Madara search: GET /?s=query&post_type=wp-manga  (no mangaSubString in search URL)
-        let url = this.baseUrl + "/page/" + page + "/?s=" + encodeURIComponent(query) + "&post_type=wp-manga";
+        let pagePath = page > 1 ? "page/" + page + "/" : "";
+        let url = this.baseUrl + "/" + pagePath + "?s=" + encodeURIComponent(query) + "&post_type=wp-manga";
         let res = this.fetchHtml(url);
         if (!res) return { items: [], totalPages: page };
         return this.parseMangaList(res.body, page);
@@ -189,8 +202,6 @@ var source = {
     getMangaList: function(page, status, genre, type) {
         page = Math.max(1, page || 1);
 
-        // Build search via loadMore AJAX with filters
-        // For status/genre filtering Madara uses GET on mangaSubString with query params
         let params = [];
         if (status === 1) params.push("status%5B%5D=on-going");
         else if (status === 2) params.push("status%5B%5D=end");
@@ -206,7 +217,8 @@ var source = {
 
         if (params.length === 0) return this.getPopularManga(page);
 
-        let url = this.baseUrl + "/" + this.mangaSubString + "/page/" + page + "/?" + params.join("&");
+        let pagePath = page > 1 ? "page/" + page + "/" : "";
+        let url = this.baseUrl + "/" + this.mangaSubString + "/" + pagePath + "?" + params.join("&");
         let res = this.fetchHtml(url);
         if (!res) return { items: [], totalPages: page };
         return this.parseMangaList(res.body, page);
@@ -269,21 +281,17 @@ var source = {
         let doc0 = Html.parse(res.body, fullUrl);
         let chapterHtml = "";
 
-        // Try inline chapters first (li.wp-manga-chapter)
         let inlineItems = doc0.querySelectorAll("li.wp-manga-chapter");
         if (inlineItems && inlineItems.length > 0) {
-            // chapters already inline — parse directly
             return this._parseChapterElements(inlineItems, fullUrl);
         }
 
-        // Try new endpoint: POST {mangaUrl}/ajax/chapters  (xhrChaptersRequest)
         let cleanUrl = fullUrl.replace(/\/$/, "");
         let ajaxHtml = this.postXhr(cleanUrl + "/ajax/chapters", "");
         if (ajaxHtml && ajaxHtml.trim() !== "" && ajaxHtml.trim() !== "false") {
             chapterHtml = ajaxHtml;
         }
 
-        // Fallback: old endpoint admin-ajax.php with manga_get_chapters
         if (!chapterHtml) {
             let wrapper = doc0.querySelector("div[id^=manga-chapters-holder]");
             if (wrapper) {
@@ -314,7 +322,6 @@ var source = {
 
             let href = linkEl.attr("href") || "";
             if (!href || href === "#") continue;
-            // Strip baseUrl; also strip ?style=list suffix if present
             let chUrl = href.startsWith(this.baseUrl) ? href.substring(this.baseUrl.length) : href;
             chUrl = chUrl.replace(/\?style=list$/, "");
 
@@ -350,7 +357,6 @@ var source = {
 
         let pages = [];
 
-        // 1. Madara standard: ts_reader.run(JSON)
         let match = res.body.match(/ts_reader\.run\(([\s\S]*?)\);/);
         if (match && match[1]) {
             try {
@@ -369,8 +375,6 @@ var source = {
             } catch (e) {}
         }
 
-        // 2. Fallback: Madara pageListParseSelector
-        // "div.page-break, li.blocks-gallery-item, .reading-content .text-left:not(:has(.blocks-gallery-item)) img"
         let doc = Html.parse(res.body, fullUrl);
         let imgEls = doc.querySelectorAll("div.page-break img, li.blocks-gallery-item img, #readerarea img, .reading-content img");
         for (let i = 0; i < imgEls.length; i++) {
