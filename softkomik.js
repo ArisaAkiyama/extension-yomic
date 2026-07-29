@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.1",
+    version: "1.10.2",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -253,10 +253,27 @@ var source = {
                     let items = list.map(m => {
                         let slug = m.title_slug || "";
                         let cover = m.gambar || "";
+
+                        // If search API doesn't return cover image, fetch detail page HTML to extract exact "gambar"
+                        if (!cover && slug) {
+                            let detailHtml = this.getHtml(this.baseUrl + "/" + slug);
+                            if (detailHtml) {
+                                let idx = detailHtml.indexOf('"gambar":"');
+                                if (idx !== -1) {
+                                    let sub = detailHtml.substring(idx + 10);
+                                    let endIdx = sub.indexOf('"');
+                                    if (endIdx !== -1) {
+                                        cover = sub.substring(0, endIdx);
+                                    }
+                                }
+                            }
+                        }
+
                         let thumbnailUrl = "";
                         if (cover) {
                             thumbnailUrl = cover.startsWith("http") ? cover : (this.coverBaseUrl + "/" + cover.replace(/^\//, ""));
                         }
+
                         return {
                             id: "/" + slug,
                             title: m.title || slug,
