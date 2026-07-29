@@ -2,7 +2,7 @@ var source = {
     name: "Mangabat",
     baseUrl: "https://www.mangabats.com",
     language: "en",
-    version: "1.0.3",
+    version: "1.0.4",
     description: "Mangabat English extension implemented in JavaScript using HTML parsing and MangaBox endpoints",
     author: "DesktopKomik",
     iconBackground: "#111827",
@@ -159,9 +159,37 @@ var source = {
     },
 
     getChapterList: function(mangaUrl) {
+        let slug = this.extractMangaSlug(mangaUrl);
+        let chapters = [];
+
+        // 1. Try API first (Mangabat's dynamic chapter endpoint)
+        if (slug) {
+            let offset = 0;
+            while (offset < 10000) {
+                let apiUrl = this.baseUrl + "/api/manga/" + encodeURIComponent(slug) + "/chapters?limit=" + this.chapterPageSize + "&offset=" + offset;
+                let json = this.getJson(apiUrl);
+                if (!json || !json.data || !json.data.chapters || json.data.chapters.length === 0) break;
+
+                let data = json.data;
+                for (let i = 0; i < data.chapters.length; i++) {
+                    let chapter = data.chapters[i];
+                    chapters.push({
+                        name: chapter.chapter_name || chapter.name || "Chapter",
+                        url: this.relativeUrl(this.baseUrl + "/manga/" + slug + "/" + chapter.chapter_slug),
+                        dateUpload: this.parseDate(chapter.updated_at || chapter.updatedAt || "")
+                    });
+                }
+
+                if (!data.pagination || data.pagination.has_more !== true) break;
+                offset += this.chapterPageSize;
+            }
+        }
+
+        if (chapters.length > 0) return chapters;
+
+        // 2. Fallback to HTML parsing if API is unavailable
         let absUrl = this.absoluteUrl(mangaUrl);
         let html = this.getHtml(absUrl);
-        let chapters = [];
 
         if (html && !this.isBlockedHtml(html)) {
             let re = /<a\b[^>]+href=["'](https?:\/\/[^"']*\/chapter-[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -170,40 +198,21 @@ var source = {
             while ((match = re.exec(html)) !== null) {
                 let href = match[1];
                 if (!href || seen[href] || href.indexOf("/chapter-") === -1) continue;
-                seen[href] = true;
 
-                let name = this.cleanText(match[2].replace(/<[^>]+>/g, ""));
+                let rawName = match[2].replace(/<[^>]+>/g, "");
+                let cleanName = this.cleanText(rawName);
+                let lowerName = cleanName.toLowerCase();
+
+                // Skip header navigation links like "Start Reading" and "Newest Chapter"
+                if (lowerName === "start reading" || lowerName === "newest chapter") continue;
+
+                seen[href] = true;
                 chapters.push({
-                    name: name || this.titleFromUrl(href),
+                    name: cleanName || this.titleFromUrl(href),
                     url: this.relativeUrl(href),
                     dateUpload: 0
                 });
             }
-        }
-
-        if (chapters.length > 0) return chapters;
-
-        let slug = this.extractMangaSlug(mangaUrl);
-        if (!slug) return [];
-
-        let offset = 0;
-        while (offset < 10000) {
-            let apiUrl = this.baseUrl + "/api/manga/" + encodeURIComponent(slug) + "/chapters?limit=" + this.chapterPageSize + "&offset=" + offset;
-            let json = this.getJson(apiUrl);
-            if (!json || !json.data || !json.data.chapters) break;
-
-            let data = json.data;
-            for (let i = 0; i < data.chapters.length; i++) {
-                let chapter = data.chapters[i];
-                chapters.push({
-                    name: chapter.chapter_name || chapter.name || "Chapter",
-                    url: this.relativeUrl(this.baseUrl + "/manga/" + slug + "/" + chapter.chapter_slug),
-                    dateUpload: this.parseDate(chapter.updated_at || chapter.updatedAt || "")
-                });
-            }
-
-            if (!data.pagination || data.pagination.has_more !== true) break;
-            offset += this.chapterPageSize;
         }
 
         return chapters;
