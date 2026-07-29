@@ -2,7 +2,7 @@ var source = {
     name: "KlikManga",
     baseUrl: "https://klikmanga.org",
     language: "id",
-    version: "1.2.1",
+    version: "1.2.2",
     description: "Baca Manga, Manhwa, dan Manhua Bahasa Indonesia dari KlikManga (Madara)",
     author: "DesktopKomik",
     iconBackground: "#1a1a2e",
