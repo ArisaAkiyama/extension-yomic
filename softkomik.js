@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.0",
+    version: "1.10.1",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -232,19 +232,55 @@ var source = {
     },
 
     getSearchManga: function(query, page) {
+        query = (query || "").trim();
         if (!query) return this.getPopularManga(page);
 
-        // Keiyoushi search API format: name=query&search=true&limit=20&page=1
+        // 1. Direct search API: https://v2.softdevices.my.id/search?name=query
+        let searchUrl = this.apiUrl + "/search?name=" + encodeURIComponent(query);
+        let body = this.getHtml(searchUrl, {
+            headers: {
+                "Accept": "application/json, text/plain, */*",
+                "Referer": this.baseUrl + "/",
+                "Origin": this.baseUrl
+            }
+        });
+
+        if (body) {
+            try {
+                let json = JSON.parse(body);
+                let list = json.data || [];
+                if (Array.isArray(list) && list.length > 0) {
+                    let items = list.map(m => {
+                        let slug = m.title_slug || "";
+                        let cover = m.gambar || "";
+                        let thumbnailUrl = "";
+                        if (cover) {
+                            thumbnailUrl = cover.startsWith("http") ? cover : (this.coverBaseUrl + "/" + cover.replace(/^\//, ""));
+                        }
+                        return {
+                            id: "/" + slug,
+                            title: m.title || slug,
+                            thumbnailUrl: thumbnailUrl,
+                            url: this.baseUrl + "/" + slug
+                        };
+                    }).filter(m => m.id !== "/");
+
+                    if (items.length > 0) {
+                        return { items: items, totalPages: 1 };
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // 2. Fallback to /komik endpoint with session token
         let params = 'name=' + encodeURIComponent(query) + '&search=true&limit=20&page=' + page;
         let result = this.fetchApi(params);
         if (result && result.items.length > 0) return result;
 
-        // Fallback: try without search=true parameter
-        let paramsAlt = 'page=' + page + '&limit=20&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
-        let resultAlt = this.fetchApi(paramsAlt);
-        if (resultAlt && resultAlt.items.length > 0) return resultAlt;
-
-        return { items: [], totalPages: 1 };
+        // 3. Fallback to library HTML page
+        let html = this.getHtml(this.baseUrl + "/komik/library?page=" + page);
+        let items = this.parseMangaCards(html);
+        return { items: items, totalPages: 100 };
     },
 
     searchManga: function(query, page) {
