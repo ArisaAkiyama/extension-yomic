@@ -2,7 +2,7 @@ var source = {
     name: "OkyyKomik",
     baseUrl: "https://www.okyykomik.my.id",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "OkyyKomik Indonesian extension implemented in JavaScript.",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
@@ -231,9 +231,15 @@ var source = {
             let metaTitle = document.querySelector("meta[property='og:title']");
             if (metaTitle) categoryName = metaTitle.attr("content");
         }
+        if (!categoryName) {
+            let h1 = document.querySelector("h1, h2");
+            if (h1) categoryName = h1.text();
+        }
 
-        if (categoryName) {
-            let feedUrl = this.baseUrl + "/feeds/posts/summary/-/" + encodeURIComponent(categoryName) + "?alt=json&max-results=150";
+        let mainTitle = this.cleanText(categoryName);
+
+        if (mainTitle) {
+            let feedUrl = this.baseUrl + "/feeds/posts/summary/-/" + encodeURIComponent(mainTitle) + "?alt=json&max-results=150";
             let json = this.getJson(feedUrl);
             if (json && json.feed && json.feed.entry) {
                 let entries = json.feed.entry;
@@ -245,10 +251,13 @@ var source = {
                     if (!href || href === absUrl) continue;
 
                     let chTitle = (e.title && e.title["$t"]) ? e.title["$t"] : this.titleFromUrl(href);
+                    let cleanedName = this.cleanChapterName(chTitle, mainTitle);
+                    if (!cleanedName) continue;
+
                     let published = e.published ? Date.parse(e.published["$t"]) : 0;
 
                     chapters.push({
-                        name: chTitle || "Chapter",
+                        name: cleanedName,
                         url: this.relativeUrl(href),
                         dateUpload: published || 0
                     });
@@ -266,17 +275,35 @@ var source = {
             let href = a.absUrl("href");
             if (!href || seen[href] || href === absUrl || href.indexOf("/search") !== -1) continue;
             let txt = this.cleanText(a.text());
-            if (!txt || txt.toLowerCase() === "read more" || txt.toLowerCase() === "baca sekarang") continue;
+            let cleanedName = this.cleanChapterName(txt, mainTitle);
+            if (!cleanedName || cleanedName.toLowerCase() === "read more" || cleanedName.toLowerCase() === "baca sekarang") continue;
 
             seen[href] = true;
             chapters.push({
-                name: txt || this.titleFromUrl(href),
+                name: cleanedName,
                 url: this.relativeUrl(href),
                 dateUpload: 0
             });
         }
 
         return chapters;
+    },
+
+    cleanChapterName: function(rawName, mainTitle) {
+        let name = this.cleanText(rawName);
+        let lowerName = name.toLowerCase();
+        let lowerTitle = (mainTitle || "").toLowerCase().trim();
+
+        if (lowerTitle && lowerName.startsWith(lowerTitle)) {
+            name = name.substring(lowerTitle.length).trim();
+            name = name.replace(/^[:\-\s]+/, "").trim();
+        }
+
+        if (!name || lowerName === lowerTitle) {
+            return "";
+        }
+
+        return name;
     },
 
     getPageList: function(chapterUrl) {
