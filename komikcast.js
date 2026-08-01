@@ -1,6 +1,6 @@
 var source = {
     name: "KomikCast",
-    baseUrl: "https://v2.komikcast.fit",
+    baseUrl: "https://v3.komikcast.fit",
     apiUrl: "https://be.komikcast.cc",
     language: "id",
     version: "1.0.0",
