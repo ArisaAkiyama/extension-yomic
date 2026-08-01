@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.4",
+    version: "1.10.3",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -78,8 +78,52 @@ var source = {
 
     // Retrieve a session token for the v2 API with 1-hour cache
     getApiSession: function(forceRefresh) {
-        // Softkomik has disabled direct /api/session/* endpoints on softkomik.co.
-        // Return null immediately to prevent 15+ seconds of HTTP 404 Polly retries.
+        if (!forceRefresh && cachedApiSession && Date.now() < cachedApiSession.ex) {
+            return cachedApiSession;
+        }
+
+        let ref = this.baseUrl + '/komik/list';
+        // Seed cookies via GET to list page
+        this.getHtml(ref);
+
+        let apiHeaders = {
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': ref,
+            'Origin': this.baseUrl
+        };
+
+        let sessionEndpoints = [
+            this.baseUrl + '/api/session/chapter/oaisos',
+            this.baseUrl + '/api/session/aksjkas',
+            this.baseUrl + '/api/session/chapter/oioa',
+            this.baseUrl + '/api/session/iuiuiwqw',
+            this.baseUrl + '/api/session/amsnuy',
+            this.baseUrl + '/api/session/chapter'
+        ];
+
+        for (let i = 0; i < sessionEndpoints.length; i++) {
+            let ep = sessionEndpoints[i];
+            let sessBody = this.getHtml(ep, { headers: apiHeaders });
+            if (sessBody) {
+                try {
+                    let s = JSON.parse(sessBody);
+                    if (s && s.token) {
+                        let cleaned = this.cleanSessionData(s.token, s.sig || s.sign);
+                        if (cleaned) {
+                            cachedApiSession = {
+                                token: cleaned.token,
+                                sign: cleaned.sign,
+                                ex: Date.now() + (60 * 60 * 1000) // 1 hour
+                            };
+                            return cachedApiSession;
+                        }
+                    }
+                } catch(e) {}
+            }
+        }
+
         return null;
     },
 
@@ -407,23 +451,28 @@ var source = {
 
         let slug = mangaId.replace(/^\//, '');
 
-        // Step 1: Try fetching chapter list directly from v2.softdevices.my.id API (Fast & Reliable)
-        let apiChUrl = this.apiUrl + "/chapter?slug=" + slug;
-        try {
+        // Step 1: Try fetching full chapter list via API if session token is cached
+        let sess = this.getApiSession(false);
+        if (sess) {
+            let apiChUrl = this.apiUrl + "/komik/" + slug + "/chapter?limit=9999999";
             let body = this.getHtml(apiChUrl, {
                 headers: {
+                    'X-Token': sess.token,
+                    'X-Sign': sess.sign,
                     'Referer': this.baseUrl + '/',
                     'Origin': this.baseUrl
                 }
             });
             if (body) {
-                let json = JSON.parse(body);
-                let chapterList = json.data || json.chapter || [];
-                if (Array.isArray(chapterList) && chapterList.length > 0) {
-                    return this.parseChapterArray(chapterList, mangaId);
-                }
+                try {
+                    let json = JSON.parse(body);
+                    let chapterList = json.chapter || json.data || [];
+                    if (Array.isArray(chapterList) && chapterList.length > 0) {
+                        return this.parseChapterArray(chapterList, mangaId);
+                    }
+                } catch(e) {}
             }
-        } catch(e) {}
+        }
 
         // Step 2: Fetch Next.js HTML page data
         let html = this.getHtml(this.baseUrl + mangaId);
@@ -470,13 +519,30 @@ var source = {
                 throw new Error("Tidak ada data chapter yang ditemukan.");
             }
 
-            let sess = null;
-            try {
-                sess = this.getApiSession(true);
-            } catch(e) {}
+            // Session endpoint — fetch WITHOUT headers so Cloudflare bypass is active
+            // The homepage visit in Step 1 already set Cloudflare cookies
+            let sessionUrl = this.baseUrl + "/api/session/chapter/oaisos";
+            let sessBody = this.getHtml(sessionUrl, {
+                headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "Referer": fullUrl,
+                    "Origin": this.baseUrl
+                }
+            });
+            
+            if (!sessBody) {
+                throw new Error("Gagal mendapat session token dari Softkomik. Coba beberapa saat lagi.");
+            }
 
-            if (!sess || !sess.token || !sess.sign) {
-                throw new Error("Situs Softkomik sedang memperbarui sistem keamanan session mereka. Silakan coba beberapa saat lagi.");
+            let sessJson = null;
+            try {
+                sessJson = JSON.parse(sessBody);
+            } catch(e) {
+                throw new Error("Response session Softkomik tidak valid.");
+            }
+
+            if (!sessJson || !sessJson.token || !sessJson.sign) {
+                throw new Error("Session token Softkomik kosong. Server mungkin sedang bermasalah.");
             }
 
             // Extract slug and chapter from URL
@@ -487,30 +553,21 @@ var source = {
             let slug = urlMatch[1];
             let chNum = urlMatch[2];
 
-            let cleanToken = sess.token;
-            let cleanSign = sess.sign;
+            // Clean token/sign as Tachiyomi does
+            let cleanToken = sessJson.token;
+            let rawSign = sessJson.sign;
+            let cleanSign = rawSign.indexOf('|') !== -1 ? rawSign.substring(0, rawSign.indexOf('|')) : rawSign.substring(0, 64);
 
-            let imgBody = null;
-            let endpointsToTry = [
-                this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id,
-                this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id
-            ];
-
-            for (let i = 0; i < endpointsToTry.length; i++) {
-                try {
-                    let body = this.getHtml(endpointsToTry[i], {
-                        headers: {
-                            "X-Token": cleanToken,
-                            "X-Sign": cleanSign,
-                            "Referer": this.baseUrl + "/"
-                        }
-                    });
-                    if (body) {
-                        imgBody = body;
-                        break;
-                    }
-                } catch(e) {}
-            }
+            // Image API call — with X-Token and X-Sign headers
+            // NOTE: endpoint is /imgs/ (plural) not /img/
+            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id;
+            let imgBody = this.getHtml(imgApiUrl, {
+                headers: {
+                    "X-Token": cleanToken,
+                    "X-Sign": cleanSign,
+                    "Referer": this.baseUrl + "/"
+                }
+            });
 
             if (!imgBody) {
                 throw new Error("Gagal memuat daftar gambar dari server Softkomik.");
@@ -518,11 +575,13 @@ var source = {
 
             try {
                 let imgJson = JSON.parse(imgBody);
-                let docData = imgJson._doc || imgJson.data || imgJson;
-                imageSrc = docData.imageSrc || docData.images || [];
-            } catch(e) {
-                throw new Error("Format data gambar Softkomik tidak valid.");
-            }
+                // Response wraps data in _doc.imageSrc (Mongoose document structure)
+                if (imgJson && imgJson._doc && imgJson._doc.imageSrc) {
+                    imageSrc = imgJson._doc.imageSrc;
+                } else if (imgJson && imgJson.imageSrc) {
+                    imageSrc = imgJson.imageSrc;
+                }
+            } catch(e) {}
         }
 
         if (!imageSrc || imageSrc.length === 0) {
