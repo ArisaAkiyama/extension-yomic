@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.3",
+    version: "1.10.4",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -78,52 +78,8 @@ var source = {
 
     // Retrieve a session token for the v2 API with 1-hour cache
     getApiSession: function(forceRefresh) {
-        if (!forceRefresh && cachedApiSession && Date.now() < cachedApiSession.ex) {
-            return cachedApiSession;
-        }
-
-        let ref = this.baseUrl + '/komik/list';
-        try {
-            this.getHtml(ref);
-        } catch(e) {}
-
-        let apiHeaders = {
-            'Accept': 'application/json, text/plain, */*',
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': ref,
-            'Origin': this.baseUrl
-        };
-
-        let sessionEndpoints = [
-            this.baseUrl + '/api/session/iuiuiwqw',
-            this.baseUrl + '/api/session/chapter/oioa',
-            this.baseUrl + '/api/session/amsnuy',
-            this.baseUrl + '/api/session/chapter',
-            this.baseUrl + '/api/session'
-        ];
-
-        for (let i = 0; i < sessionEndpoints.length; i++) {
-            let ep = sessionEndpoints[i];
-            try {
-                let sessBody = this.getHtml(ep, { headers: apiHeaders });
-                if (sessBody) {
-                    let s = JSON.parse(sessBody);
-                    if (s && s.token) {
-                        let cleaned = this.cleanSessionData(s.token, s.sig || s.sign);
-                        if (cleaned) {
-                            cachedApiSession = {
-                                token: cleaned.token,
-                                sign: cleaned.sign,
-                                ex: Date.now() + (60 * 60 * 1000) // 1 hour
-                            };
-                            return cachedApiSession;
-                        }
-                    }
-                }
-            } catch(e) {}
-        }
-
+        // Softkomik has disabled direct /api/session/* endpoints on softkomik.co.
+        // Return null immediately to prevent 15+ seconds of HTTP 404 Polly retries.
         return null;
     },
 
@@ -451,28 +407,23 @@ var source = {
 
         let slug = mangaId.replace(/^\//, '');
 
-        // Step 1: Try fetching full chapter list via API if session token is cached
-        let sess = this.getApiSession(false);
-        if (sess) {
-            let apiChUrl = this.apiUrl + "/komik/" + slug + "/chapter?limit=9999999";
+        // Step 1: Try fetching chapter list directly from v2.softdevices.my.id API (Fast & Reliable)
+        let apiChUrl = this.apiUrl + "/chapter?slug=" + slug;
+        try {
             let body = this.getHtml(apiChUrl, {
                 headers: {
-                    'X-Token': sess.token,
-                    'X-Sign': sess.sign,
                     'Referer': this.baseUrl + '/',
                     'Origin': this.baseUrl
                 }
             });
             if (body) {
-                try {
-                    let json = JSON.parse(body);
-                    let chapterList = json.chapter || json.data || [];
-                    if (Array.isArray(chapterList) && chapterList.length > 0) {
-                        return this.parseChapterArray(chapterList, mangaId);
-                    }
-                } catch(e) {}
+                let json = JSON.parse(body);
+                let chapterList = json.data || json.chapter || [];
+                if (Array.isArray(chapterList) && chapterList.length > 0) {
+                    return this.parseChapterArray(chapterList, mangaId);
+                }
             }
-        }
+        } catch(e) {}
 
         // Step 2: Fetch Next.js HTML page data
         let html = this.getHtml(this.baseUrl + mangaId);
