@@ -62,3 +62,7 @@ var source = {
     getChapterUrl: function(url) { ... }
 };
 ```
+
+---
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:00AAFF,100:0052CC&height=120&section=footer" width="100%"/>
