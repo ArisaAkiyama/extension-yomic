@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.2",
+    version: "1.10.3",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -83,8 +83,9 @@ var source = {
         }
 
         let ref = this.baseUrl + '/komik/list';
-        // Seed cookies via GET to list page
-        this.getHtml(ref);
+        try {
+            this.getHtml(ref);
+        } catch(e) {}
 
         let apiHeaders = {
             'Accept': 'application/json, text/plain, */*',
@@ -98,14 +99,15 @@ var source = {
             this.baseUrl + '/api/session/iuiuiwqw',
             this.baseUrl + '/api/session/chapter/oioa',
             this.baseUrl + '/api/session/amsnuy',
-            this.baseUrl + '/api/session/chapter'
+            this.baseUrl + '/api/session/chapter',
+            this.baseUrl + '/api/session'
         ];
 
         for (let i = 0; i < sessionEndpoints.length; i++) {
             let ep = sessionEndpoints[i];
-            let sessBody = this.getHtml(ep, { headers: apiHeaders });
-            if (sessBody) {
-                try {
+            try {
+                let sessBody = this.getHtml(ep, { headers: apiHeaders });
+                if (sessBody) {
                     let s = JSON.parse(sessBody);
                     if (s && s.token) {
                         let cleaned = this.cleanSessionData(s.token, s.sig || s.sign);
@@ -118,8 +120,8 @@ var source = {
                             return cachedApiSession;
                         }
                     }
-                } catch(e) {}
-            }
+                }
+            } catch(e) {}
         }
 
         return null;
@@ -517,24 +519,13 @@ var source = {
                 throw new Error("Tidak ada data chapter yang ditemukan.");
             }
 
-            // Session endpoint — fetch WITHOUT headers so Cloudflare bypass is active
-            // The homepage visit in Step 1 already set Cloudflare cookies
-            let sessionUrl = this.baseUrl + "/api/session/chapter/oioa";
-            let sessBody = this.getHtml(sessionUrl);
-            
-            if (!sessBody) {
-                throw new Error("Gagal mendapat session token dari Softkomik. Coba beberapa saat lagi.");
-            }
-
-            let sessJson = null;
+            let sess = null;
             try {
-                sessJson = JSON.parse(sessBody);
-            } catch(e) {
-                throw new Error("Response session Softkomik tidak valid.");
-            }
+                sess = this.getApiSession(true);
+            } catch(e) {}
 
-            if (!sessJson || !sessJson.token || !sessJson.sign) {
-                throw new Error("Session token Softkomik kosong. Server mungkin sedang bermasalah.");
+            if (!sess || !sess.token || !sess.sign) {
+                throw new Error("Situs Softkomik sedang memperbarui sistem keamanan session mereka. Silakan coba beberapa saat lagi.");
             }
 
             // Extract slug and chapter from URL
@@ -545,21 +536,30 @@ var source = {
             let slug = urlMatch[1];
             let chNum = urlMatch[2];
 
-            // Clean token/sign as Tachiyomi does
-            let cleanToken = sessJson.token;
-            let rawSign = sessJson.sign;
-            let cleanSign = rawSign.indexOf('|') !== -1 ? rawSign.substring(0, rawSign.indexOf('|')) : rawSign.substring(0, 64);
+            let cleanToken = sess.token;
+            let cleanSign = sess.sign;
 
-            // Image API call — with X-Token and X-Sign headers
-            // NOTE: endpoint is /imgs/ (plural) not /img/
-            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id;
-            let imgBody = this.getHtml(imgApiUrl, {
-                headers: {
-                    "X-Token": cleanToken,
-                    "X-Sign": cleanSign,
-                    "Referer": this.baseUrl + "/"
-                }
-            });
+            let imgBody = null;
+            let endpointsToTry = [
+                this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id,
+                this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/img/" + cData._id
+            ];
+
+            for (let i = 0; i < endpointsToTry.length; i++) {
+                try {
+                    let body = this.getHtml(endpointsToTry[i], {
+                        headers: {
+                            "X-Token": cleanToken,
+                            "X-Sign": cleanSign,
+                            "Referer": this.baseUrl + "/"
+                        }
+                    });
+                    if (body) {
+                        imgBody = body;
+                        break;
+                    }
+                } catch(e) {}
+            }
 
             if (!imgBody) {
                 throw new Error("Gagal memuat daftar gambar dari server Softkomik.");
@@ -567,13 +567,11 @@ var source = {
 
             try {
                 let imgJson = JSON.parse(imgBody);
-                // Response wraps data in _doc.imageSrc (Mongoose document structure)
-                if (imgJson && imgJson._doc && imgJson._doc.imageSrc) {
-                    imageSrc = imgJson._doc.imageSrc;
-                } else if (imgJson && imgJson.imageSrc) {
-                    imageSrc = imgJson.imageSrc;
-                }
-            } catch(e) {}
+                let docData = imgJson._doc || imgJson.data || imgJson;
+                imageSrc = docData.imageSrc || docData.images || [];
+            } catch(e) {
+                throw new Error("Format data gambar Softkomik tidak valid.");
+            }
         }
 
         if (!imageSrc || imageSrc.length === 0) {
