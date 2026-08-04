@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.3",
+    version: "1.10.4",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -598,10 +598,10 @@ var source = {
         }
 
         // CDN selection based on storageInter2 flag:
-        // storageInter2 = true  → cdn1.softkomik.org/softkomik/
+        // storageInter2 = true  → image.komik.im/softkomik/ (Updated from deprecated cdn1.softkomik.org)
         // storageInter2 = false → psy1.komik.im/
         let cdnBase = (cData && cData.storageInter2 === true)
-            ? "https://cdn1.softkomik.org/softkomik/"
+            ? "https://image.komik.im/softkomik/"
             : "https://psy1.komik.im/";
 
         let pages = [];
