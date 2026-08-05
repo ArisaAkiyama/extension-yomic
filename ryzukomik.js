@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.6",
+    version: "2.0.7",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
@@ -56,6 +56,12 @@ var source = {
         let currentPage = Math.max(1, page || 1);
         let url = this.apiUrl + "/ki-browse?ajax=1&page=" + currentPage;
 
+        if (status === 1) {
+            url += "&status=Ongoing";
+        } else if (status === 2) {
+            url += "&status=Completed";
+        }
+
         if (genres) {
             let genreSlug = "";
             if (Array.isArray(genres) && genres.length > 0) {
@@ -65,7 +71,18 @@ var source = {
             }
             genreSlug = genreSlug.toLowerCase().trim().replace(/\s+/g, "-");
             if (genreSlug) {
-                url = this.apiUrl + "/ki-browse?ajax=1&genre=" + encodeURIComponent(genreSlug) + "&page=" + currentPage;
+                if (genreSlug === "gore" || genreSlug === "ecchi" || genreSlug === "sexual-violence") {
+                    url += "&konten=" + encodeURIComponent(genreSlug);
+                } else {
+                    url += "&genre=" + encodeURIComponent(genreSlug);
+                }
+            }
+        }
+
+        if (formats && Array.isArray(formats) && formats.length > 0) {
+            let targetType = formats[0];
+            if (targetType) {
+                url += "&type=" + encodeURIComponent(targetType);
             }
         }
 
@@ -73,17 +90,7 @@ var source = {
         if (response.status !== 200) return { items: [], totalPages: currentPage };
 
         let json = JSON.parse(response.body);
-        let result = this.parseKiBrowseResponse(json, currentPage);
-
-        // Filter by format type if needed
-        if (formats && Array.isArray(formats) && formats.length > 0) {
-            let targetFormats = formats.map(f => (f || "").toLowerCase().trim());
-            result.items = result.items.filter(function(item) {
-                return !item._tp || targetFormats.indexOf((item._tp || "").toLowerCase()) !== -1;
-            });
-        }
-
-        return result;
+        return this.parseKiBrowseResponse(json, currentPage);
     },
 
     // Parse /ki-browse AJAX JSON response
