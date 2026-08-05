@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.9.0",
+    version: "1.10.5",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -95,10 +95,12 @@ var source = {
         };
 
         let sessionEndpoints = [
+            this.baseUrl + '/api/session/chapter/oaisos',
+            this.baseUrl + '/api/session/aksjkas',
+            this.baseUrl + '/api/session/chapter',
             this.baseUrl + '/api/session/iuiuiwqw',
             this.baseUrl + '/api/session/chapter/oioa',
-            this.baseUrl + '/api/session/amsnuy',
-            this.baseUrl + '/api/session/chapter'
+            this.baseUrl + '/api/session/amsnuy'
         ];
 
         for (let i = 0; i < sessionEndpoints.length; i++) {
@@ -232,19 +234,72 @@ var source = {
     },
 
     getSearchManga: function(query, page) {
+        query = (query || "").trim();
         if (!query) return this.getPopularManga(page);
 
-        // Keiyoushi search API format: name=query&search=true&limit=20&page=1
+        // 1. Direct search API: https://v2.softdevices.my.id/search?name=query
+        let searchUrl = this.apiUrl + "/search?name=" + encodeURIComponent(query);
+        let body = this.getHtml(searchUrl, {
+            headers: {
+                "Accept": "application/json, text/plain, */*",
+                "Referer": this.baseUrl + "/",
+                "Origin": this.baseUrl
+            }
+        });
+
+        if (body) {
+            try {
+                let json = JSON.parse(body);
+                let list = json.data || [];
+                if (Array.isArray(list) && list.length > 0) {
+                    let items = list.map(m => {
+                        let slug = m.title_slug || "";
+                        let cover = m.gambar || "";
+
+                        // If search API doesn't return cover image, fetch detail page HTML to extract exact "gambar"
+                        if (!cover && slug) {
+                            let detailHtml = this.getHtml(this.baseUrl + "/" + slug);
+                            if (detailHtml) {
+                                let idx = detailHtml.indexOf('"gambar":"');
+                                if (idx !== -1) {
+                                    let sub = detailHtml.substring(idx + 10);
+                                    let endIdx = sub.indexOf('"');
+                                    if (endIdx !== -1) {
+                                        cover = sub.substring(0, endIdx);
+                                    }
+                                }
+                            }
+                        }
+
+                        let thumbnailUrl = "";
+                        if (cover) {
+                            thumbnailUrl = cover.startsWith("http") ? cover : (this.coverBaseUrl + "/" + cover.replace(/^\//, ""));
+                        }
+
+                        return {
+                            id: "/" + slug,
+                            title: m.title || slug,
+                            thumbnailUrl: thumbnailUrl,
+                            url: this.baseUrl + "/" + slug
+                        };
+                    }).filter(m => m.id !== "/");
+
+                    if (items.length > 0) {
+                        return { items: items, totalPages: 1 };
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // 2. Fallback to /komik endpoint with session token
         let params = 'name=' + encodeURIComponent(query) + '&search=true&limit=20&page=' + page;
         let result = this.fetchApi(params);
         if (result && result.items.length > 0) return result;
 
-        // Fallback: try without search=true parameter
-        let paramsAlt = 'page=' + page + '&limit=20&sortBy=newKomik&name=' + encodeURIComponent(query) + '&showAdult=false';
-        let resultAlt = this.fetchApi(paramsAlt);
-        if (resultAlt && resultAlt.items.length > 0) return resultAlt;
-
-        return { items: [], totalPages: 1 };
+        // 3. Fallback to library HTML page
+        let html = this.getHtml(this.baseUrl + "/komik/library?page=" + page);
+        let items = this.parseMangaCards(html);
+        return { items: items, totalPages: 100 };
     },
 
     searchManga: function(query, page) {
@@ -318,9 +373,16 @@ var source = {
         return suffix ? (formatted + "." + suffix) : formatted;
     },
 
+    parseDateToMs: function(str) {
+        if (!str) return 0;
+        if (typeof str === 'number') return str;
+        let ms = Date.parse(str);
+        return (!isNaN(ms) && ms > 0) ? ms : 0;
+    },
+
     parseChapterArray: function(list, mangaId) {
         let chapters = [];
-        let seenIds = new Set();
+        let seenNumbers = new Set();
         for (let i = 0; i < list.length; i++) {
             let item = list[i];
             let chNumStr = item.chapter || item.ch || item.title || "";
@@ -330,15 +392,15 @@ var source = {
             let displayNum = this.formatChapterDisplay(chNumStr);
             let chUrl = mangaId + "/chapter/" + chNumStr;
 
-            if (seenIds.has(chUrl)) continue;
-            seenIds.add(chUrl);
+            if (seenNumbers.has(chNum)) continue;
+            seenNumbers.add(chNum);
 
             chapters.push({
                 id: chUrl,
                 url: this.baseUrl + chUrl,
                 name: "Chapter " + displayNum,
                 chapterNumber: chNum,
-                dateUploaded: item.created_at || item.updated_at || ""
+                dateUploaded: this.parseDateToMs(item.created_at || item.updated_at)
             });
         }
         chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
@@ -347,24 +409,25 @@ var source = {
 
     generateChaptersFromLatestStr: function(latestStr, mangaId, updatedAt) {
         let chapters = [];
-        let seen = new Set();
+        let seenNumbers = new Set();
+        let parsedDateMs = this.parseDateToMs(updatedAt);
 
         let addCh = (chStr, num, date) => {
+            if (seenNumbers.has(num)) return;
+            seenNumbers.add(num);
+
             let chUrl = mangaId + "/chapter/" + chStr;
-            if (seen.has(chUrl)) return;
-            seen.add(chUrl);
             chapters.push({
                 id: chUrl,
                 url: this.baseUrl + chUrl,
                 name: "Chapter " + this.formatChapterDisplay(chStr),
                 chapterNumber: num,
-                dateUploaded: date || ""
+                dateUploaded: date || parsedDateMs || 0
             });
         };
 
         let latestNum = this.parseChapterNumber(latestStr);
         if (latestNum > 0) {
-            // Preserve raw latestStr if it contains non-integer suffixes like .Tamat, .End, or decimals .5
             let isRawSpecial = latestStr.includes('.') || isNaN(parseInt(latestStr, 10)) || String(parseInt(latestStr, 10)) !== latestStr;
             if (isRawSpecial) {
                 addCh(latestStr, latestNum, updatedAt);
@@ -372,20 +435,7 @@ var source = {
 
             let maxInt = Math.floor(latestNum);
             for (let i = maxInt; i >= 1; i--) {
-                let chNumStr3 = i < 10 ? "00" + i : (i < 100 ? "0" + i : "" + i);
-                addCh(chNumStr3, i, updatedAt);
                 addCh(String(i), i, updatedAt);
-
-                // Support half chapters like 1.5, 2.5 if latestStr indicates fractional chapters
-                if (latestStr.includes('.5')) {
-                    if (i > 1) {
-                        let halfVal = i - 0.5;
-                        let prevInt = i - 1;
-                        let halfStr3 = prevInt < 10 ? "00" + prevInt + ".5" : (prevInt < 100 ? "0" + prevInt + ".5" : "" + prevInt + ".5");
-                        addCh(halfStr3, halfVal, updatedAt);
-                        addCh(prevInt + ".5", halfVal, updatedAt);
-                    }
-                }
             }
         }
         chapters.sort((a, b) => b.chapterNumber - a.chapterNumber);
@@ -469,24 +519,35 @@ var source = {
                 throw new Error("Tidak ada data chapter yang ditemukan.");
             }
 
-            // Session endpoint — fetch WITHOUT headers so Cloudflare bypass is active
-            // The homepage visit in Step 1 already set Cloudflare cookies
-            let sessionUrl = this.baseUrl + "/api/session/chapter/oioa";
-            let sessBody = this.getHtml(sessionUrl);
-            
-            if (!sessBody) {
+            let sess = this.getApiSession(true);
+            if (!sess) {
+                let sessionEndpoints = [
+                    this.baseUrl + "/api/session/chapter/oaisos",
+                    this.baseUrl + "/api/session/aksjkas",
+                    this.baseUrl + "/api/session/chapter",
+                    this.baseUrl + "/api/session/iuiuiwqw",
+                    this.baseUrl + "/api/session/chapter/oioa"
+                ];
+
+                for (let ep of sessionEndpoints) {
+                    let sessBody = this.getHtml(ep);
+                    if (sessBody) {
+                        try {
+                            let sJson = JSON.parse(sessBody);
+                            if (sJson && sJson.token && sJson.sign) {
+                                let cleaned = this.cleanSessionData(sJson.token, sJson.sign);
+                                if (cleaned) {
+                                    sess = cleaned;
+                                    break;
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            if (!sess) {
                 throw new Error("Gagal mendapat session token dari Softkomik. Coba beberapa saat lagi.");
-            }
-
-            let sessJson = null;
-            try {
-                sessJson = JSON.parse(sessBody);
-            } catch(e) {
-                throw new Error("Response session Softkomik tidak valid.");
-            }
-
-            if (!sessJson || !sessJson.token || !sessJson.sign) {
-                throw new Error("Session token Softkomik kosong. Server mungkin sedang bermasalah.");
             }
 
             // Extract slug and chapter from URL
@@ -497,35 +558,39 @@ var source = {
             let slug = urlMatch[1];
             let chNum = urlMatch[2];
 
-            // Clean token/sign as Tachiyomi does
-            let cleanToken = sessJson.token;
-            let rawSign = sessJson.sign;
-            let cleanSign = rawSign.indexOf('|') !== -1 ? rawSign.substring(0, rawSign.indexOf('|')) : rawSign.substring(0, 64);
-
-            // Image API call — with X-Token and X-Sign headers
-            // NOTE: endpoint is /imgs/ (plural) not /img/
-            let imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id;
+            // Image API call 1 — Next.js /api/komik/{slug}/chapter/{chNum}/img?id={cData._id}
+            let imgApiUrl = this.baseUrl + "/api/komik/" + encodeURIComponent(slug) + "/chapter/" + encodeURIComponent(chNum) + "/img?id=" + encodeURIComponent(cData._id);
             let imgBody = this.getHtml(imgApiUrl, {
                 headers: {
-                    "X-Token": cleanToken,
-                    "X-Sign": cleanSign,
-                    "Referer": this.baseUrl + "/"
+                    "X-Token": sess.token,
+                    "X-Sign": sess.sign,
+                    "Referer": fullUrl,
+                    "Origin": this.baseUrl
                 }
             });
 
             if (!imgBody) {
-                throw new Error("Gagal memuat daftar gambar dari server Softkomik.");
+                // Fallback to old /imgs/ endpoint
+                imgApiUrl = this.apiUrl + "/komik/" + slug + "/chapter/" + chNum + "/imgs/" + cData._id;
+                imgBody = this.getHtml(imgApiUrl, {
+                    headers: {
+                        "X-Token": sess.token,
+                        "X-Sign": sess.sign,
+                        "Referer": this.baseUrl + "/"
+                    }
+                });
             }
 
-            try {
-                let imgJson = JSON.parse(imgBody);
-                // Response wraps data in _doc.imageSrc (Mongoose document structure)
-                if (imgJson && imgJson._doc && imgJson._doc.imageSrc) {
-                    imageSrc = imgJson._doc.imageSrc;
-                } else if (imgJson && imgJson.imageSrc) {
-                    imageSrc = imgJson.imageSrc;
-                }
-            } catch(e) {}
+            if (imgBody) {
+                try {
+                    let imgJson = JSON.parse(imgBody);
+                    if (imgJson && Array.isArray(imgJson.imageSrc)) {
+                        imageSrc = imgJson.imageSrc;
+                    } else if (imgJson && imgJson._doc && Array.isArray(imgJson._doc.imageSrc)) {
+                        imageSrc = imgJson._doc.imageSrc;
+                    }
+                } catch(e) {}
+            }
         }
 
         if (!imageSrc || imageSrc.length === 0) {
@@ -533,23 +598,32 @@ var source = {
         }
 
         // CDN selection based on storageInter2 flag:
-        // storageInter2 = true  → cdn1.softkomik.org/softkomik/
+        // storageInter2 = true  → image.komik.im/softkomik/ (Updated from deprecated cdn1.softkomik.org)
         // storageInter2 = false → psy1.komik.im/
         let cdnBase = (cData && cData.storageInter2 === true)
-            ? "https://cdn1.softkomik.org/softkomik/"
+            ? "https://image.komik.im/softkomik/"
             : "https://psy1.komik.im/";
 
         let pages = [];
         for (let i = 0; i < imageSrc.length; i++) {
             let img = imageSrc[i];
             if (img.startsWith("/")) img = img.substring(1);
-            // If it's already a full URL
+            
+            let fullImg;
             if (img.startsWith("http")) {
-                pages.push(img + "|Referer=" + this.baseUrl + "/");
+                fullImg = img;
             } else {
                 // Relative path — prefix with selected CDN
-                pages.push(cdnBase + img + "|Referer=" + this.baseUrl + "/");
+                fullImg = cdnBase + img;
             }
+
+            // Append security parameter id=T4Kmwztku if not already present
+            if (!fullImg.includes("id=")) {
+                let delimiter = fullImg.includes("?") ? "&" : "?";
+                fullImg = fullImg + delimiter + "id=T4Kmwztku";
+            }
+
+            pages.push(fullImg + "|Referer=" + this.baseUrl + "/");
         }
 
         return pages;
