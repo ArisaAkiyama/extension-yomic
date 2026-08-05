@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.1",
+    version: "2.0.2",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
@@ -21,11 +21,41 @@ var source = {
     },
 
     // -------------------------
-    // LATEST UPDATES (ki-browse is the same list - browse the homepage for latest)
-    // Homepage has recent chapters so we use ki-browse which is the best available  
+    // LATEST UPDATES
+    // Fetches the homepage and parses the "Chapter Terbaru" section to get the actual
+    // latest updated mangas in correct chronological order.
     // -------------------------
     getLatestUpdates: function(page) {
-        return this.getMangaList(page, 0, null, null);
+        let currentPage = Math.max(1, page || 1);
+        if (currentPage > 1) {
+            return { items: [], totalPages: 1 };
+        }
+
+        let response = fetch(this.baseUrl);
+        if (response.status !== 200) return { items: [], totalPages: 1 };
+
+        let html = response.body;
+        let items = [];
+
+        // Isolate "Chapter Terbaru" section to avoid matching other sections
+        let sectionMatch = html.match(/Chapter Terbaru([\s\S]*?)(?:<\/section>|id="commentSection"|<div class="flex-shrink-0)/);
+        let searchArea = sectionMatch ? sectionMatch[0] : html;
+
+        let cardRegex = /<div[^>]*class="[^"]*group[^"]*"[\s\S]*?<a href="(\/komik\/[^"]+)"[^>]*title="([^"]+)"[\s\S]*?<img src="([^"]+)"/g;
+        let m;
+        while ((m = cardRegex.exec(searchArea)) !== null) {
+            let relUrl = m[1];
+            let title = this.cleanTitle(m[2]);
+            let thumbUrl = m[3];
+
+            items.push({
+                title: title,
+                url: relUrl,
+                thumbnailUrl: thumbUrl
+            });
+        }
+
+        return { items: items, totalPages: 1 };
     },
 
     // -------------------------
