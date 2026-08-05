@@ -1,7 +1,7 @@
 var source = {
     name: "Ryzukomik",
-    baseUrl: "https://ryzukomik.my.id",
-    apiUrl: "https://ryzukomik.my.id",
+    baseUrl: "https://baca.ryzukomik.space",
+    apiUrl: "https://baca.ryzukomik.space",
     language: "id",
     version: "1.0.0",
     description: "Ryzukomik Indonesian manga extension",
@@ -173,6 +173,9 @@ var source = {
     },
 
     getMangaDetails: function(url) {
+        if (url.startsWith("http")) {
+            url = url.replace(/https?:\/\/[^\/]+/, "");
+        }
         let fullUrl = this.baseUrl + url;
         let response = fetch(fullUrl);
         if (response.status !== 200) return {};
@@ -232,6 +235,9 @@ var source = {
     },
 
     getChapterList: function(mangaUrl) {
+        if (mangaUrl.startsWith("http")) {
+            mangaUrl = mangaUrl.replace(/https?:\/\/[^\/]+/, "");
+        }
         let fullUrl = this.baseUrl + mangaUrl;
         let response = fetch(fullUrl);
         if (response.status !== 200) return [];
@@ -265,6 +271,9 @@ var source = {
     },
 
     getPageList: function(chapterUrl) {
+        if (chapterUrl.startsWith("http")) {
+            chapterUrl = chapterUrl.replace(/https?:\/\/[^\/]+/, "");
+        }
         let fullUrl = this.baseUrl + chapterUrl;
         let response = fetch(fullUrl);
         if (response.status !== 200) return [];
