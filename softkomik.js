@@ -6,7 +6,7 @@ var source = {
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
     language: "id",
-    version: "1.10.4",
+    version: "1.10.5",
     description: "Softkomik Indonesian extension.",
     author: "DesktopKomik",
     iconBackground: "#111111",
@@ -608,13 +608,22 @@ var source = {
         for (let i = 0; i < imageSrc.length; i++) {
             let img = imageSrc[i];
             if (img.startsWith("/")) img = img.substring(1);
-            // If it's already a full URL
+            
+            let fullImg;
             if (img.startsWith("http")) {
-                pages.push(img + "|Referer=" + this.baseUrl + "/");
+                fullImg = img;
             } else {
                 // Relative path — prefix with selected CDN
-                pages.push(cdnBase + img + "|Referer=" + this.baseUrl + "/");
+                fullImg = cdnBase + img;
             }
+
+            // Append security parameter id=T4Kmwztku if not already present
+            if (!fullImg.includes("id=")) {
+                let delimiter = fullImg.includes("?") ? "&" : "?";
+                fullImg = fullImg + delimiter + "id=T4Kmwztku";
+            }
+
+            pages.push(fullImg + "|Referer=" + this.baseUrl + "/");
         }
 
         return pages;
