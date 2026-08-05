@@ -3,224 +3,171 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "1.0.0",
-    description: "Ryzukomik Indonesian manga extension",
+    version: "2.0.0",
+    description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
     iconForeground: "#ea580c",
     isNsfw: false,
     isHasMorePages: true,
 
-    cleanTitle: function(title) {
-        return title.replace(/^(?:-\s*|komik\s+)+/i, '').trim();
-    },
-
+    // -------------------------
+    // POPULAR MANGA (ki-browse AJAX API)
+    // API: GET /ki-browse?ajax=1&page={page}
+    // Response: { st, pg: { pg, tt, nx, pr }, dt: [ { jd, sl, gm, tp, wr, rt } ] }
+    // -------------------------
     getPopularManga: function(page) {
         return this.getMangaList(page, 0, null, null);
     },
 
+    // -------------------------
+    // LATEST UPDATES (ki-browse is the same list - browse the homepage for latest)
+    // Homepage has recent chapters so we use ki-browse which is the best available  
+    // -------------------------
     getLatestUpdates: function(page) {
-        let currentPage = Math.max(1, page || 1);
-        if (currentPage === 1) {
-            let url = this.apiUrl + "/komi";
-            let response = fetch(url);
-            if (response.status !== 200) return { items: [], totalPages: 1 };
-            
-            let doc = Html.parse(response.body, url);
-            let container = doc.querySelector("#manga-container");
-            if (!container) return { items: [], totalPages: 1 };
-            
-            let articles = container.querySelectorAll("article");
-            let items = [];
-            for (let art of articles) {
-                let titleEl = art.querySelector("h3");
-                let title = titleEl ? this.cleanTitle(titleEl.text().trim()) : "";
-                
-                let linkEl = art.querySelector("a");
-                let relUrl = linkEl ? linkEl.attr("href") : "";
-                
-                let imgEl = art.querySelector("img[alt='poster']");
-                let thumbUrl = imgEl ? imgEl.absUrl("src") : "";
-
-                if (title && relUrl) {
-                    items.push({
-                        title: title,
-                        url: relUrl,
-                        thumbnailUrl: thumbUrl
-                    });
-                }
-            }
-            return { items: items, totalPages: 1 };
-        } else {
-            return this.getPopularManga(page);
-        }
+        return this.getMangaList(page, 0, null, null);
     },
 
+    // -------------------------
+    // SEARCH
+    // API: GET /ki-browse?ajax=1&s={query}&page={page}
+    // -------------------------
     getSearchManga: function(query, page) {
         let currentPage = Math.max(1, page || 1);
         query = (query || "").trim();
-        if (!query) return this.getPopularManga(currentPage);
+        if (!query) return this.getMangaList(currentPage, 0, null, null);
 
-        let url = this.apiUrl + "/komi/browse?ajax=1&s=" + encodeURIComponent(query) + "&page=" + currentPage;
+        let url = this.apiUrl + "/ki-browse?ajax=1&s=" + encodeURIComponent(query) + "&page=" + currentPage;
         let response = fetch(url);
         if (response.status !== 200) return { items: [], totalPages: currentPage };
 
         let json = JSON.parse(response.body);
-        let gridHtml = json.grid || "";
-        let doc = Html.parse(gridHtml, this.baseUrl);
-        
-        let cards = doc.querySelectorAll("div.group.flex.flex-col");
-        let items = [];
-        for (let card of cards) {
-            let titleEl = card.querySelector("h3");
-            let title = titleEl ? this.cleanTitle(titleEl.text().trim()) : "";
-            
-            let linkEl = card.querySelector("a");
-            let relUrl = linkEl ? linkEl.attr("href") : "";
-            
-            let imgEl = card.querySelector("img");
-            let thumbUrl = imgEl ? imgEl.absUrl("src") : "";
-
-            if (title && relUrl) {
-                items.push({
-                    title: title,
-                    url: relUrl,
-                    thumbnailUrl: thumbUrl
-                });
-            }
-        }
-
-        let totalPages = json.total_pages || currentPage;
-        return {
-            items: items,
-            totalPages: Math.max(currentPage, totalPages)
-        };
+        return this.parseKiBrowseResponse(json, currentPage);
     },
 
+    // -------------------------
+    // MANGA LIST
+    // API: GET /ki-browse?ajax=1&genre={genre}&page={page}
+    // -------------------------
     getMangaList: function(page, status, genres, formats) {
         let currentPage = Math.max(1, page || 1);
-        let url = this.apiUrl + "/komi/browse?ajax=1";
+        let url = this.apiUrl + "/ki-browse?ajax=1&page=" + currentPage;
 
-        let genreSlug = "";
         if (genres) {
+            let genreSlug = "";
             if (Array.isArray(genres) && genres.length > 0) {
                 genreSlug = genres[0];
             } else if (typeof genres === 'string') {
                 genreSlug = genres;
             }
             genreSlug = genreSlug.toLowerCase().trim().replace(/\s+/g, "-");
-        }
-
-        let targetFormats = [];
-        if (formats && Array.isArray(formats)) {
-            for (let i = 0; i < formats.length; i++) {
-                if (formats[i]) targetFormats.push(formats[i].toLowerCase().trim());
+            if (genreSlug) {
+                url = this.apiUrl + "/ki-browse?ajax=1&genre=" + encodeURIComponent(genreSlug) + "&page=" + currentPage;
             }
-        }
-
-        if (genreSlug) {
-            url += "&genre=" + encodeURIComponent(genreSlug) + "&page=" + currentPage;
-        } else {
-            url += "&daftar=" + currentPage;
         }
 
         let response = fetch(url);
         if (response.status !== 200) return { items: [], totalPages: currentPage };
 
         let json = JSON.parse(response.body);
-        let gridHtml = json.grid || "";
-        let doc = Html.parse(gridHtml, this.baseUrl);
-        
-        let cards = doc.querySelectorAll("div.group.flex.flex-col");
-        let items = [];
-        for (let card of cards) {
-            // Read format badge
-            let formatVal = "";
-            let spanEl = card.querySelector("span");
-            if (spanEl) {
-                formatVal = spanEl.text().trim().toLowerCase();
-            }
+        let result = this.parseKiBrowseResponse(json, currentPage);
 
-            if (targetFormats.length > 0) {
-                if (targetFormats.indexOf(formatVal) === -1) {
-                    continue;
-                }
-            }
-
-            let titleEl = card.querySelector("h3");
-            let title = titleEl ? this.cleanTitle(titleEl.text().trim()) : "";
-            
-            let linkEl = card.querySelector("a");
-            let relUrl = linkEl ? linkEl.attr("href") : "";
-            
-            let imgEl = card.querySelector("img");
-            let thumbUrl = imgEl ? imgEl.absUrl("src") : "";
-
-            if (title && relUrl) {
-                items.push({
-                    title: title,
-                    url: relUrl,
-                    thumbnailUrl: thumbUrl
-                });
-            }
+        // Filter by format type if needed
+        if (formats && Array.isArray(formats) && formats.length > 0) {
+            let targetFormats = formats.map(f => (f || "").toLowerCase().trim());
+            result.items = result.items.filter(function(item) {
+                return !item._tp || targetFormats.indexOf((item._tp || "").toLowerCase()) !== -1;
+            });
         }
 
-        let totalPages = json.total_pages || currentPage;
-        return {
-            items: items,
-            totalPages: Math.max(currentPage, totalPages)
-        };
+        return result;
     },
 
-    getMangaDetails: function(url) {
-        if (url.startsWith("http")) {
-            url = url.replace(/https?:\/\/[^\/]+/, "");
+    // Parse /ki-browse AJAX JSON response
+    // dt item: { jd: title, sl: slug, gm: thumbnail, tp: type, wr: ongoing, rt: rating }
+    parseKiBrowseResponse: function(json, currentPage) {
+        let items = [];
+        let dt = json.dt || [];
+        let pg = json.pg || {};
+
+        for (let item of dt) {
+            let title = item.jd || "";
+            let slug = item.sl || "";
+            let thumbnailUrl = item.gm || "";
+            if (!title || !slug) continue;
+
+            items.push({
+                title: title,
+                url: "/komik/" + slug,
+                thumbnailUrl: thumbnailUrl,
+                _tp: item.tp || ""
+            });
         }
+
+        let totalPages = (pg.tt && pg.tt > 0) ? pg.tt : currentPage;
+        if (pg.nx === true && totalPages <= currentPage) {
+            totalPages = currentPage + 1;
+        }
+
+        return { items: items, totalPages: totalPages };
+    },
+
+    // -------------------------
+    // MANGA DETAILS
+    // URL: /komik/{slug}
+    // Uses LD+JSON for description, meta for author/genre
+    // -------------------------
+    getMangaDetails: function(url) {
         let fullUrl = this.baseUrl + url;
         let response = fetch(fullUrl);
         if (response.status !== 200) return {};
 
-        let doc = Html.parse(response.body, fullUrl);
-        
-        let titleEl = doc.querySelector("h1");
-        let title = titleEl ? this.cleanTitle(titleEl.text().trim()) : "";
-        
-        let thumbEl = doc.querySelector("img[alt='poster']");
-        let thumbnailUrl = thumbEl ? thumbEl.absUrl("src") : "";
+        let html = response.body;
 
+        // Title: h1
+        let titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
+        let title = titleMatch ? titleMatch[1].trim() : "";
+
+        // Thumbnail: first jpg/png from komikindo or similar CDN
+        let thumbMatch = html.match(/<img[^>]+src="(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"[^>]*alt="[^"]*"/i);
+        let thumbnailUrl = thumbMatch ? thumbMatch[1] : "";
+
+        // Description from LD+JSON (most reliable)
         let description = "";
-        let synopsisEl = doc.querySelector("#synopsisFull") || doc.querySelector("#synopsisShort");
-        if (synopsisEl) {
-            description = synopsisEl.text().trim();
+        let ldJsonMatch = html.match(/<script type="application\/ld\+json">([\s\S]+?)<\/script>/);
+        if (ldJsonMatch) {
+            try {
+                let ldData = JSON.parse(ldJsonMatch[1]);
+                if (ldData.description) description = ldData.description;
+            } catch(e) {}
         }
 
-        // Details metadata
+        // Author from LD+JSON
         let author = "";
-        let status = 0; // Unknown=0, Ongoing=1, Completed=2
-        
-        let detailDivs = doc.querySelectorAll(".flex.justify-between.items-center, .flex.justify-between.items-start");
-        for (let i = 0; i < detailDivs.length; i++) {
-            let text = detailDivs[i].text().toLowerCase();
-            if (text.includes("pengarang") || text.includes("author")) {
-                let valEl = detailDivs[i].querySelector("span.text-neutral-200");
-                if (valEl) author = valEl.text().trim();
-            } else if (text.includes("status")) {
-                let valEl = detailDivs[i].querySelector("span.text-neutral-200");
-                if (valEl) {
-                    let statusStr = valEl.text().toLowerCase();
-                    if (statusStr.includes("berjalan") || statusStr.includes("ongoing")) {
-                        status = 1;
-                    } else if (statusStr.includes("tamat") || statusStr.includes("completed")) {
-                        status = 2;
-                    }
-                }
+        if (ldJsonMatch) {
+            try {
+                let ldData = JSON.parse(ldJsonMatch[1]);
+                if (ldData.author && ldData.author.name) author = ldData.author.name;
+            } catch(e) {}
+        }
+
+        // Status: look for "Berjalan" or "Tamat" near the Status label
+        let status = 0;
+        let statusMatch = html.match(/Status<\/span>\s*<span[^>]*>([^<]+)<\/span>/i);
+        if (statusMatch) {
+            let statusStr = statusMatch[1].toLowerCase();
+            if (statusStr.includes("berjalan") || statusStr.includes("ongoing")) {
+                status = 1;
+            } else if (statusStr.includes("tamat") || statusStr.includes("completed")) {
+                status = 2;
             }
         }
 
+        // Genres: /ki-browse?genre=... links
         let genres = [];
-        let genreLinks = doc.querySelectorAll(".genre-link");
-        for (let i = 0; i < genreLinks.length; i++) {
-            genres.push(genreLinks[i].text().trim());
+        let genreMatches = html.matchAll(/href="\/ki-browse\?genre=([^"]+)"[^>]*>([^<]+)<\/a>/g);
+        for (let m of genreMatches) {
+            genres.push(m[2].trim());
         }
 
         return {
@@ -234,67 +181,104 @@ var source = {
         };
     },
 
+    // -------------------------
+    // CHAPTER LIST
+    // URL: /komik/{slug}  
+    // Chapter links: a.chapter-item with href="/chapter/{slug-chapter-N}/"
+    // -------------------------
     getChapterList: function(mangaUrl) {
-        if (mangaUrl.startsWith("http")) {
-            mangaUrl = mangaUrl.replace(/https?:\/\/[^\/]+/, "");
-        }
         let fullUrl = this.baseUrl + mangaUrl;
         let response = fetch(fullUrl);
         if (response.status !== 200) return [];
 
-        let doc = Html.parse(response.body, fullUrl);
-        let chapterListDiv = doc.querySelector("#chapterList");
-        if (!chapterListDiv) return [];
+        let html = response.body;
 
-        let aTags = chapterListDiv.querySelectorAll("a.chapter-item");
+        // Chapter links: href="/chapter/..." class="chapter-item"
         let chapters = [];
-        for (let a of aTags) {
-            let titleEl = a.querySelector(".ch-title");
-            let title = titleEl ? titleEl.text().trim() : a.text().trim();
-            let relativeUrl = a.attr("href");
+        let chapterMatches = html.matchAll(/href="(\/chapter\/[^"]+)"[^>]*class="chapter-item[^"]*"[\s\S]*?ch-title[^>]*>([^<]+)<[\s\S]*?(?:ch-date[^>]*>([^<]+)<)?/g);
 
-            // Optional Date Parsing
-            let dateUpload = 0;
-            let dateEl = a.querySelector(".ch-date");
-            if (dateEl) {
-                let dateText = dateEl.text().trim();
-                dateUpload = this.parseRelativeDate(dateText);
-            }
+        for (let m of chapterMatches) {
+            let chUrl = m[1];
+            let chTitle = m[2].trim();
+            let chDate = m[3] ? m[3].trim() : "";
+            let dateUpload = chDate ? this.parseRelativeDate(chDate) : 0;
 
             chapters.push({
-                name: title,
-                url: relativeUrl,
+                name: chTitle,
+                url: chUrl,
                 dateUpload: dateUpload
             });
         }
-        return chapters;
-    },
 
-    getPageList: function(chapterUrl) {
-        if (chapterUrl.startsWith("http")) {
-            chapterUrl = chapterUrl.replace(/https?:\/\/[^\/]+/, "");
-        }
-        let fullUrl = this.baseUrl + chapterUrl;
-        let response = fetch(fullUrl);
-        if (response.status !== 200) return [];
+        // Fallback: simple href + ch-title pattern
+        if (chapters.length === 0) {
+            let doc = Html.parse(html, fullUrl);
+            let chapterListDiv = doc.querySelector("#chapterList");
+            if (chapterListDiv) {
+                let aTags = chapterListDiv.querySelectorAll("a.chapter-item");
+                for (let a of aTags) {
+                    let titleEl = a.querySelector(".ch-title");
+                    let chTitle = titleEl ? titleEl.text().trim() : a.text().trim();
+                    let relUrl = a.attr("href");
 
-        let pages = [];
-        // Regex parsing of Javascript variable `originalImages`
-        let match = response.body.match(/const\s+originalImages\s*=\s*(\[[^\]]+\]);/);
-        if (match && match[1]) {
-            try {
-                pages = JSON.parse(match[1]);
-            } catch(e) {
-                // Fallback to DOM parsing if regex fails
+                    let dateUpload = 0;
+                    let dateEl = a.querySelector(".ch-date");
+                    if (dateEl) {
+                        dateUpload = this.parseRelativeDate(dateEl.text().trim());
+                    }
+
+                    if (relUrl) {
+                        chapters.push({
+                            name: chTitle,
+                            url: relUrl,
+                            dateUpload: dateUpload
+                        });
+                    }
+                }
             }
         }
 
+        return chapters;
+    },
+
+    // -------------------------
+    // PAGE LIST (images)
+    // URL: /chapter/{chapter-slug}/
+    // Images in JS variable: const originalImages = ["url1","url2",...]
+    // -------------------------
+    getPageList: function(chapterUrl) {
+        // Ensure no double slash
+        let chUrl = chapterUrl;
+        if (chUrl.startsWith("/chapter/")) {
+            chUrl = this.baseUrl + chUrl;
+        } else if (!chUrl.startsWith("http")) {
+            chUrl = this.baseUrl + "/" + chUrl;
+        }
+
+        let response = fetch(chUrl);
+        if (response.status !== 200) return [];
+
+        let pages = [];
+
+        // Primary: originalImages variable
+        let match = response.body.match(/(?:const|var|let)\s+originalImages\s*=\s*(\[[^\]]+\])/);
+        if (match && match[1]) {
+            try {
+                let raw = match[1].replace(/\\\/\//g, "//").replace(/\\\//g, "/");
+                pages = JSON.parse(raw);
+            } catch(e) {}
+        }
+
+        // Fallback: DOM parsing
         if (pages.length === 0) {
-            let doc = Html.parse(response.body, fullUrl);
-            let imgEls = doc.querySelectorAll("#chap-img img");
-            for (let img of imgEls) {
-                let src = img.absUrl("src") || img.attr("src");
-                if (src) pages.push(src);
+            let doc = Html.parse(response.body, chUrl);
+            let readerDiv = doc.querySelector("#reader-vertical") || doc.querySelector("#chap-img");
+            if (readerDiv) {
+                let imgEls = readerDiv.querySelectorAll("img");
+                for (let img of imgEls) {
+                    let src = img.absUrl("src") || img.attr("src");
+                    if (src) pages.push(src);
+                }
             }
         }
 
