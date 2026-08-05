@@ -3,13 +3,17 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.2",
+    version: "2.0.3",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
     iconForeground: "#ea580c",
     isNsfw: false,
     isHasMorePages: true,
+
+    cleanTitle: function(title) {
+        return title.replace(/^(?:-\s*|komik\s+)+/i, '').trim();
+    },
 
     // -------------------------
     // POPULAR MANGA (ki-browse AJAX API)
