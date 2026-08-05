@@ -3,13 +3,17 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.5",
+    version: "2.0.6",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
     iconForeground: "#ea580c",
     isNsfw: false,
     isHasMorePages: true,
+
+    cleanTitle: function(title) {
+        return title.replace(/^(?:-\s*|komik\s+)+/i, '').trim();
+    },
 
     // -------------------------
     // POPULAR MANGA (ki-browse AJAX API)
@@ -21,62 +25,10 @@ var source = {
     },
 
     // -------------------------
-    // LATEST UPDATES (ki-browse is the same list - browse the homepage for latest)
-    // Homepage has recent chapters so we use ki-browse which is the best available  
+    // LATEST UPDATES (ki-browse AJAX API)
     // -------------------------
     getLatestUpdates: function(page) {
-        let currentPage = Math.max(1, page || 1);
-        if (currentPage > 1) {
-            return { items: [], totalPages: 1 };
-        }
-
-        let url = this.baseUrl + "/";
-        let response = fetch(url);
-        if (response.status !== 200) return { items: [], totalPages: 1 };
-
-        let html = response.body;
-        let items = [];
-        let blocks = html.split('group fade-in');
-
-        for (let i = 1; i < blocks.length; i++) {
-            let b = blocks[i];
-            let linkMatch = b.match(/href="(\/komik\/[^"]+)"/);
-            let titleMatch = b.match(/title="([^"]+)"/) || b.match(/alt="([^"]+)"/);
-            let imgMatch = b.match(/src="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
-
-            if (linkMatch) {
-                let relUrl = linkMatch[1];
-                let title = titleMatch ? titleMatch[1].trim() : "";
-                let thumbUrl = imgMatch ? imgMatch[1] : "";
-
-                // Fallback to text if title is empty
-                if (!title) {
-                    let textMatch = b.match(/>([^<]{2,})<\/a>/);
-                    if (textMatch) title = textMatch[1].trim();
-                }
-
-                if (relUrl) {
-                    title = this.cleanTitle(title);
-                    items.push({
-                        title: title,
-                        url: relUrl,
-                        thumbnailUrl: thumbUrl
-                    });
-                }
-            }
-        }
-
-        // De-duplicate
-        let uniqueItems = [];
-        let seenUrls = {};
-        for (let item of items) {
-            if (!seenUrls[item.url]) {
-                seenUrls[item.url] = true;
-                uniqueItems.push(item);
-            }
-        }
-
-        return { items: uniqueItems, totalPages: 1 };
+        return this.getMangaList(page, 0, null, null);
     },
 
     // -------------------------
