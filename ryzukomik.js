@@ -3,17 +3,13 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.4",
+    version: "2.0.1",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
     iconForeground: "#ea580c",
     isNsfw: false,
     isHasMorePages: true,
-
-    cleanTitle: function(title) {
-        return title.replace(/^(?:-\s*|komik\s+)+/i, '').trim();
-    },
 
     // -------------------------
     // POPULAR MANGA (ki-browse AJAX API)
@@ -25,9 +21,8 @@ var source = {
     },
 
     // -------------------------
-    // LATEST UPDATES
-    // Fetches the homepage and parses the "Chapter Terbaru" section to get the actual
-    // latest updated mangas in correct chronological order.
+    // LATEST UPDATES (ki-browse is the same list - browse the homepage for latest)
+    // Homepage has recent chapters so we use ki-browse which is the best available  
     // -------------------------
     getLatestUpdates: function(page) {
         let currentPage = Math.max(1, page || 1);
@@ -35,43 +30,65 @@ var source = {
             return { items: [], totalPages: 1 };
         }
 
-        let response = fetch(this.baseUrl);
+        let url = this.baseUrl + "/";
+        let response = fetch(url);
         if (response.status !== 200) return { items: [], totalPages: 1 };
 
         let html = response.body;
         let items = [];
+        let blocks = html.split('group fade-in');
 
-        // Isolate "Chapter Terbaru" section to avoid matching other sections
-        let sectionMatch = html.match(/Chapter Terbaru([\s\S]*?)(?:<\/section>|id="commentSection"|<div class="flex-shrink-0)/);
-        let searchArea = sectionMatch ? sectionMatch[0] : html;
+        for (let i = 1; i < blocks.length; i++) {
+            let b = blocks[i];
+            let linkMatch = b.match(/href="(\/komik\/[^"]+)"/);
+            let titleMatch = b.match(/title="([^"]+)"/) || b.match(/alt="([^"]+)"/);
+            let imgMatch = b.match(/src="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
 
-        let cardRegex = /<div[^>]*class="[^"]*group[^"]*"[\s\S]*?<a href="(\/komik\/[^"]+)"[^>]*title="([^"]+)"[\s\S]*?<img src="([^"]+)"/g;
-        let m;
-        while ((m = cardRegex.exec(searchArea)) !== null) {
-            let relUrl = m[1];
-            let title = this.cleanTitle(m[2]);
-            let thumbUrl = m[3];
+            if (linkMatch) {
+                let relUrl = linkMatch[1];
+                let title = titleMatch ? titleMatch[1].trim() : "";
+                let thumbUrl = imgMatch ? imgMatch[1] : "";
 
-            items.push({
-                title: title,
-                url: relUrl,
-                thumbnailUrl: thumbUrl
-            });
+                // Fallback to text if title is empty
+                if (!title) {
+                    let textMatch = b.match(/>([^<]{2,})<\/a>/);
+                    if (textMatch) title = textMatch[1].trim();
+                }
+
+                if (relUrl) {
+                    title = this.cleanTitle(title);
+                    items.push({
+                        title: title,
+                        url: relUrl,
+                        thumbnailUrl: thumbUrl
+                    });
+                }
+            }
         }
 
-        return { items: items, totalPages: 1 };
+        // De-duplicate
+        let uniqueItems = [];
+        let seenUrls = {};
+        for (let item of items) {
+            if (!seenUrls[item.url]) {
+                seenUrls[item.url] = true;
+                uniqueItems.push(item);
+            }
+        }
+
+        return { items: uniqueItems, totalPages: 1 };
     },
 
     // -------------------------
     // SEARCH
-    // API: GET /ki-browse?ajax=1&title={query}&page={page}
+    // API: GET /ki-browse?ajax=1&s={query}&page={page}
     // -------------------------
     getSearchManga: function(query, page) {
         let currentPage = Math.max(1, page || 1);
         query = (query || "").trim();
         if (!query) return this.getMangaList(currentPage, 0, null, null);
 
-        let url = this.apiUrl + "/ki-browse?ajax=1&title=" + encodeURIComponent(query) + "&page=" + currentPage;
+        let url = this.apiUrl + "/ki-browse?ajax=1&s=" + encodeURIComponent(query) + "&page=" + currentPage;
         let response = fetch(url);
         if (response.status !== 200) return { items: [], totalPages: currentPage };
 
@@ -87,33 +104,16 @@ var source = {
         let currentPage = Math.max(1, page || 1);
         let url = this.apiUrl + "/ki-browse?ajax=1&page=" + currentPage;
 
-        // 1. Filter by Status (Ongoing / Completed)
-        if (status === 1) {
-            url += "&status=Ongoing";
-        } else if (status === 2) {
-            url += "&status=Completed";
-        }
-
-        // 2. Filter by Genres (Comma-separated slugs)
-        if (genres && Array.isArray(genres) && genres.length > 0) {
-            let slugs = [];
-            for (let i = 0; i < genres.length; i++) {
-                let g = genres[i];
-                if (g) slugs.push(g.toLowerCase().trim().replace(/\s+/g, "-"));
+        if (genres) {
+            let genreSlug = "";
+            if (Array.isArray(genres) && genres.length > 0) {
+                genreSlug = genres[0];
+            } else if (typeof genres === 'string') {
+                genreSlug = genres;
             }
-            if (slugs.length > 0) {
-                url += "&genre=" + encodeURIComponent(slugs.join(","));
-            }
-        } else if (typeof genres === 'string' && genres.trim()) {
-            url += "&genre=" + encodeURIComponent(genres.toLowerCase().trim().replace(/\s+/g, "-"));
-        }
-
-        // 3. Filter by Format/Type (Manga / Manhwa / Manhua)
-        // If there's exactly one format chosen, send it server-side to the API's 'type' parameter
-        if (formats && Array.isArray(formats) && formats.length === 1) {
-            let f = formats[0];
-            if (f) {
-                url += "&type=" + encodeURIComponent(f);
+            genreSlug = genreSlug.toLowerCase().trim().replace(/\s+/g, "-");
+            if (genreSlug) {
+                url = this.apiUrl + "/ki-browse?ajax=1&genre=" + encodeURIComponent(genreSlug) + "&page=" + currentPage;
             }
         }
 
@@ -123,8 +123,8 @@ var source = {
         let json = JSON.parse(response.body);
         let result = this.parseKiBrowseResponse(json, currentPage);
 
-        // Fallback: Client-side filtering if multiple formats were selected
-        if (formats && Array.isArray(formats) && formats.length > 1) {
+        // Filter by format type if needed
+        if (formats && Array.isArray(formats) && formats.length > 0) {
             let targetFormats = formats.map(f => (f || "").toLowerCase().trim());
             result.items = result.items.filter(function(item) {
                 return !item._tp || targetFormats.indexOf((item._tp || "").toLowerCase()) !== -1;
