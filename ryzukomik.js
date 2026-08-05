@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.0",
+    version: "2.0.1",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
@@ -21,31 +21,23 @@ var source = {
     },
 
     // -------------------------
-    // LATEST UPDATES
-    // URL: https://baca.ryzukomik.space/ki-browse
-    // API: GET /ki-browse?ajax=1&page={page}
-    // Same endpoint as browse - site uses this as the "Lihat Semua" for "Chapter Terbaru"
+    // LATEST UPDATES (ki-browse is the same list - browse the homepage for latest)
+    // Homepage has recent chapters so we use ki-browse which is the best available  
     // -------------------------
     getLatestUpdates: function(page) {
-        let currentPage = Math.max(1, page || 1);
-        let url = this.baseUrl + "/ki-browse?ajax=1&page=" + currentPage;
-        let response = fetch(url);
-        if (response.status !== 200) return { items: [], totalPages: currentPage };
-
-        let json = JSON.parse(response.body);
-        return this.parseKiBrowseResponse(json, currentPage);
+        return this.getMangaList(page, 0, null, null);
     },
 
     // -------------------------
     // SEARCH
-    // API: GET /ki-browse?ajax=1&s={query}&page={page}
+    // API: GET /ki-browse?ajax=1&title={query}&page={page}
     // -------------------------
     getSearchManga: function(query, page) {
         let currentPage = Math.max(1, page || 1);
         query = (query || "").trim();
         if (!query) return this.getMangaList(currentPage, 0, null, null);
 
-        let url = this.apiUrl + "/ki-browse?ajax=1&s=" + encodeURIComponent(query) + "&page=" + currentPage;
+        let url = this.apiUrl + "/ki-browse?ajax=1&title=" + encodeURIComponent(query) + "&page=" + currentPage;
         let response = fetch(url);
         if (response.status !== 200) return { items: [], totalPages: currentPage };
 
