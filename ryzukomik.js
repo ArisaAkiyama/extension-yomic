@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.3",
+    version: "2.0.4",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
@@ -87,16 +87,33 @@ var source = {
         let currentPage = Math.max(1, page || 1);
         let url = this.apiUrl + "/ki-browse?ajax=1&page=" + currentPage;
 
-        if (genres) {
-            let genreSlug = "";
-            if (Array.isArray(genres) && genres.length > 0) {
-                genreSlug = genres[0];
-            } else if (typeof genres === 'string') {
-                genreSlug = genres;
+        // 1. Filter by Status (Ongoing / Completed)
+        if (status === 1) {
+            url += "&status=Ongoing";
+        } else if (status === 2) {
+            url += "&status=Completed";
+        }
+
+        // 2. Filter by Genres (Comma-separated slugs)
+        if (genres && Array.isArray(genres) && genres.length > 0) {
+            let slugs = [];
+            for (let i = 0; i < genres.length; i++) {
+                let g = genres[i];
+                if (g) slugs.push(g.toLowerCase().trim().replace(/\s+/g, "-"));
             }
-            genreSlug = genreSlug.toLowerCase().trim().replace(/\s+/g, "-");
-            if (genreSlug) {
-                url = this.apiUrl + "/ki-browse?ajax=1&genre=" + encodeURIComponent(genreSlug) + "&page=" + currentPage;
+            if (slugs.length > 0) {
+                url += "&genre=" + encodeURIComponent(slugs.join(","));
+            }
+        } else if (typeof genres === 'string' && genres.trim()) {
+            url += "&genre=" + encodeURIComponent(genres.toLowerCase().trim().replace(/\s+/g, "-"));
+        }
+
+        // 3. Filter by Format/Type (Manga / Manhwa / Manhua)
+        // If there's exactly one format chosen, send it server-side to the API's 'type' parameter
+        if (formats && Array.isArray(formats) && formats.length === 1) {
+            let f = formats[0];
+            if (f) {
+                url += "&type=" + encodeURIComponent(f);
             }
         }
 
@@ -106,8 +123,8 @@ var source = {
         let json = JSON.parse(response.body);
         let result = this.parseKiBrowseResponse(json, currentPage);
 
-        // Filter by format type if needed
-        if (formats && Array.isArray(formats) && formats.length > 0) {
+        // Fallback: Client-side filtering if multiple formats were selected
+        if (formats && Array.isArray(formats) && formats.length > 1) {
             let targetFormats = formats.map(f => (f || "").toLowerCase().trim());
             result.items = result.items.filter(function(item) {
                 return !item._tp || targetFormats.indexOf((item._tp || "").toLowerCase()) !== -1;
