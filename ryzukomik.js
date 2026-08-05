@@ -21,11 +21,19 @@ var source = {
     },
 
     // -------------------------
-    // LATEST UPDATES (ki-browse is the same list - browse the homepage for latest)
-    // Homepage has recent chapters so we use ki-browse which is the best available  
+    // LATEST UPDATES
+    // URL: https://baca.ryzukomik.space/ki-browse
+    // API: GET /ki-browse?ajax=1&page={page}
+    // Same endpoint as browse - site uses this as the "Lihat Semua" for "Chapter Terbaru"
     // -------------------------
     getLatestUpdates: function(page) {
-        return this.getMangaList(page, 0, null, null);
+        let currentPage = Math.max(1, page || 1);
+        let url = this.baseUrl + "/ki-browse?ajax=1&page=" + currentPage;
+        let response = fetch(url);
+        if (response.status !== 200) return { items: [], totalPages: currentPage };
+
+        let json = JSON.parse(response.body);
+        return this.parseKiBrowseResponse(json, currentPage);
     },
 
     // -------------------------
