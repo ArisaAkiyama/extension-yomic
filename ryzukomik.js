@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://baca.ryzukomik.space",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
-    version: "2.0.7",
+    version: "2.0.8",
     description: "Ryzukomik Indonesian manga extension (new domain)",
     author: "DesktopKomik",
     iconBackground: "#0a0a0a",
@@ -128,7 +128,11 @@ var source = {
     // Uses LD+JSON for description, meta for author/genre
     // -------------------------
     getMangaDetails: function(url) {
-        let fullUrl = this.baseUrl + url;
+        let cleanUrl = url;
+        if (cleanUrl.startsWith("/komi/")) {
+            cleanUrl = cleanUrl.replace("/komi/", "/");
+        }
+        let fullUrl = this.baseUrl + cleanUrl;
         let response = fetch(fullUrl);
         if (response.status !== 200) return {};
 
@@ -197,7 +201,11 @@ var source = {
     // Chapter links: a.chapter-item with href="/chapter/{slug-chapter-N}/"
     // -------------------------
     getChapterList: function(mangaUrl) {
-        let fullUrl = this.baseUrl + mangaUrl;
+        let cleanUrl = mangaUrl;
+        if (cleanUrl.startsWith("/komi/")) {
+            cleanUrl = cleanUrl.replace("/komi/", "/");
+        }
+        let fullUrl = this.baseUrl + cleanUrl;
         let response = fetch(fullUrl);
         if (response.status !== 200) return [];
 

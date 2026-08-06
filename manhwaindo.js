@@ -2,7 +2,7 @@ var source = {
     name: "ManhwaIndo",
     baseUrl: "https://www.manhwaindo.my",
     language: "id",
-    version: "1.1.3",
+    version: "1.1.4",
     description: "Baca Manhwa, Manga, dan Manhua Bahasa Indonesia dari ManhwaIndo (MangaThemesia)",
     author: "DesktopKomik",
     iconBackground: "#0d1b2a",
@@ -132,9 +132,23 @@ var source = {
             items.push({ title: title.trim(), url: relativeUrl, thumbnailUrl: thumbnailUrl, status: statusVal });
         }
 
-        // Detect next page
-        let nextEl = doc.querySelector("a.next, a[rel='next'], .hpage a.r");
-        let totalPages = (nextEl || items.length >= this.pageSize) ? page + 1 : page;
+        // Detect next page & total pages
+        let totalPages = page;
+        let pageElements = doc.querySelectorAll(".pagination .page-numbers, .pagination a, .page-numbers");
+        if (pageElements && pageElements.length > 0) {
+            for (let i = 0; i < pageElements.length; i++) {
+                let txt = pageElements[i].text().trim();
+                let p = parseInt(txt);
+                if (!isNaN(p) && p > totalPages) {
+                    totalPages = p;
+                }
+            }
+        }
+
+        if (totalPages === page) {
+            let nextEl = doc.querySelector("a.next, a[rel='next'], .hpage a.r");
+            totalPages = (nextEl || items.length >= this.pageSize) ? page + 1 : page;
+        }
 
         return { items: items, totalPages: totalPages };
     },
