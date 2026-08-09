@@ -148,28 +148,37 @@ var source = {
         let chapters = [];
         let seen = {};
 
-        let blocks = body.split(/#\d{3,4}/);
-        for (let i = 1; i < blocks.length; i++) {
-            let block = blocks[i];
+        for (let i = 0; i < body.length - 20; i++) {
+            if (body.charCodeAt(i) === 0x12) {
+                let len = body.charCodeAt(i + 1);
+                if (len > 3 && len < 150 && i + 2 + len < body.length) {
+                    let name = body.substring(i + 2, i + 2 + len).trim();
 
-            let nameMatch = block.match(/\x12([^\x00-\x1f\x7f-\xff]{1,120})/);
-            let name = nameMatch ? nameMatch[1].trim() : ("Chapter " + i);
-            if (name.includes('"')) {
-                name = name.split('"')[0].trim();
-            }
-            name = name.replace(/^[^a-zA-Z0-9#]+/, '').trim();
+                    if (/^(Chapter|#|\d+|Ch\.)/i.test(name)) {
+                        let p = i + 2 + len;
+                        if (p < body.length && body.charCodeAt(p) === 0x18) {
+                            p++;
+                            let chapId = 0;
+                            let shift = 0;
+                            while (p < body.length) {
+                                let b = body.charCodeAt(p++);
+                                chapId |= (b & 0x7f) << shift;
+                                if ((b & 0x80) === 0) break;
+                                shift += 7;
+                            }
 
-            let thumbMatch = block.match(/service_chapter_thumbnail\/(\d+)\.webp/);
-            let chapId = thumbMatch ? thumbMatch[1] : i.toString();
-
-            if (name && !seen[chapId]) {
-                seen[chapId] = true;
-                chapters.push({
-                    name: name,
-                    url: "/en/title/" + titleId + "/chapter/" + chapId,
-                    dateUpload: 0,
-                    chapterNumber: i
-                });
+                            if (chapId > 0 && !seen[chapId]) {
+                                seen[chapId] = true;
+                                chapters.push({
+                                    name: name,
+                                    url: "/en/title/" + titleId + "/chapter/" + chapId,
+                                    dateUpload: 0,
+                                    chapterNumber: chapters.length + 1
+                                });
+                            }
+                        }
+                    }
+                }
             }
         }
 
