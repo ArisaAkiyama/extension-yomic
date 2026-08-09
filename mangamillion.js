@@ -51,7 +51,7 @@ var source = {
         let items = [];
         let seen = {};
 
-        let matches = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"']*/g) || [];
+        let matches = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*/g) || [];
         for (let i = 0; i < matches.length; i++) {
             let fullCoverUrl = matches[i];
             let idMatch = fullCoverUrl.match(/original_title_cover\/(\d+)\./);
@@ -88,15 +88,18 @@ var source = {
 
         let titleName = "";
         let author = "";
-        let titleAuthorMatch = body.match(/original_title_cover\/[^\x00-\x1f"'\s]+\x12([\x01-\x7f])([^\x00-\x1f\x7f-\xff]+)\x1a([\x01-\x7f])([^\x00-\x1f\x7f-\xff]+)/);
-        if (titleAuthorMatch) {
+
+        // Extract Title and Author from title_detail protobuf:
+        // original_title_cover/...webp?... \x12{len}{TitleName}\x1a{len}{AuthorName}
+        let titleAuthorMatch = body.match(/original_title_cover\/[^\x12]+\x12([\s\S])([^\x1a]+)\x1a([\s\S])([^\x22\x3a]+)/);
+        if (titleAuthorMatch && titleAuthorMatch[2]) {
             titleName = titleAuthorMatch[2].trim();
-            author = titleAuthorMatch[4].trim();
+            author = titleAuthorMatch[4] ? titleAuthorMatch[4].trim() : "";
         }
 
         let description = "";
-        let descMatch = body.match(/:\s*[\x80-\xff]*[\x01-\x7f]*([A-Z][^\x00-\x1f\x7f-\xff]{50,1500}?)(?=Bwhttps|\x12|\x1a|$)/);
-        if (descMatch) description = descMatch[1].trim();
+        let descMatch = body.match(/:\x83\x03([\s\S]+?)(?=Bwhttps|\x12|\x1a|$)/) || body.match(/([A-Z][^\x00-\x1f]{50,1500}?)(?=Bwhttps|$)/);
+        if (descMatch && descMatch[1]) description = descMatch[1].trim();
 
         let genres = [];
         for (let i = 0; i < this.genres.length; i++) {
@@ -178,9 +181,16 @@ var source = {
         let response = this.fetchApi(url, "POST");
         if (response && response.status === 200) {
             let body = response.body || "";
-            let match = body.match(/[A-Za-z0-9_\-]{30,}/);
+            if (body.length >= 91) {
+                let len = body.charCodeAt(4);
+                if (len > 30 && len < 200 && body.length >= 5 + len) {
+                    this.token = body.substring(5, 5 + len);
+                    return this.token;
+                }
+            }
+            let match = body.match(/([A-Za-z0-9_\-]{80,95})/);
             if (match) {
-                this.token = match[0];
+                this.token = match[1];
                 return this.token;
             }
         }
