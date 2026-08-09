@@ -10,7 +10,7 @@ var source = {
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: false,
-    pageSize: 500,
+    pageSize: 24,
 
     token: null,
 
@@ -48,7 +48,7 @@ var source = {
         if (!response || response.status !== 200) return { items: [], totalPages: 1 };
 
         let body = response.body || "";
-        let items = [];
+        let allItems = [];
         let seen = {};
 
         let matches = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/g) || [];
@@ -66,7 +66,7 @@ var source = {
 
             if (!seen[id] && titleName && titleName.length > 1) {
                 seen[id] = true;
-                items.push({
+                allItems.push({
                     title: titleName,
                     url: "/en/title/" + id,
                     thumbnailUrl: fullCoverUrl + "|Referer=" + this.baseUrl + "/",
@@ -84,7 +84,7 @@ var source = {
             let id = idMatch[1];
             if (!seen[id]) {
                 seen[id] = true;
-                items.push({
+                allItems.push({
                     title: "Manga #" + id,
                     url: "/en/title/" + id,
                     thumbnailUrl: fullCoverUrl + "|Referer=" + this.baseUrl + "/",
@@ -93,7 +93,14 @@ var source = {
             }
         }
 
-        return { items: items, totalPages: 1 };
+        let currentPage = page && page > 0 ? page : 1;
+        let perPage = this.pageSize || 24;
+        let totalPages = Math.max(1, Math.ceil(allItems.length / perPage));
+
+        let start = (currentPage - 1) * perPage;
+        let pagedItems = allItems.slice(start, start + perPage);
+
+        return { items: pagedItems, totalPages: totalPages };
     },
 
     getMangaDetails: function(mangaUrl) {
