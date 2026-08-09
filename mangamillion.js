@@ -151,10 +151,10 @@ var source = {
         for (let i = 0; i < body.length - 20; i++) {
             if (body.charCodeAt(i) === 0x12) {
                 let len = body.charCodeAt(i + 1);
-                if (len > 3 && len < 150 && i + 2 + len < body.length) {
+                if (len > 1 && len < 150 && i + 2 + len < body.length) {
                     let name = body.substring(i + 2, i + 2 + len).trim();
 
-                    if (/^(Chapter|#|\d+|Ch\.)/i.test(name)) {
+                    if (name.length > 0 && !/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(name)) {
                         let p = i + 2 + len;
                         if (p < body.length && body.charCodeAt(p) === 0x18) {
                             p++;
