@@ -185,15 +185,13 @@ var source = {
         if (!response || response.status !== 200) return [];
 
         let body = response.body || "";
-        let strs = this.extractStrings(body);
 
-        let aesKey = "";
-        let aesIv = "";
-        for (let i = 0; i < strs.length; i++) {
-            let s = strs[i];
-            if (/^[0-9a-fA-F]{64}$/.test(s)) aesKey = s;
-            else if (/^[0-9a-fA-F]{32}$/.test(s)) aesIv = s;
-        }
+        let keyMatch = body.match(/[0-9a-fA-F]{64}/);
+        let aesKey = keyMatch ? keyMatch[0] : "";
+
+        let bodyNoKey = aesKey ? body.replace(aesKey, "") : body;
+        let ivMatch = bodyNoKey.match(/[0-9a-fA-F]{32}/);
+        let aesIv = ivMatch ? ivMatch[0] : "";
 
         let imgUrls = body.match(/https:\/\/img\.mangamillion[^\x00-\x1f"'<]+/g) || [];
         let pages = [];
