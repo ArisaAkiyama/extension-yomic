@@ -51,12 +51,14 @@ var source = {
         let items = [];
         let seen = {};
 
-        let matches = body.match(/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/g) || [];
+        let matches = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/g) || [];
         for (let i = 0; i < matches.length; i++) {
-            let m = matches[i].match(/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/);
+            let fullStr = matches[i];
+            let m = fullStr.match(/(https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*)\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/);
             if (!m) continue;
-            let id = m[1];
-            let titleName = m[2].trim();
+            let fullCoverUrl = m[1];
+            let id = m[2];
+            let titleName = m[3].trim();
             if (titleName.includes('"')) {
                 titleName = titleName.split('"')[0].trim();
             }
@@ -67,7 +69,7 @@ var source = {
                 items.push({
                     title: titleName,
                     url: "/en/title/" + id,
-                    thumbnailUrl: "https://img.mangamillion.shueisha.co.jp/jpn/image/original_title_cover/" + id + ".webp|Referer=" + this.baseUrl + "/",
+                    thumbnailUrl: fullCoverUrl + "|Referer=" + this.baseUrl + "/",
                     status: 1
                 });
             }
