@@ -51,21 +51,44 @@ var source = {
         let items = [];
         let seen = {};
 
-        let matches = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*/g) || [];
+        let matches = body.match(/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/g) || [];
         for (let i = 0; i < matches.length; i++) {
-            let fullCoverUrl = matches[i];
+            let m = matches[i].match(/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*\x1a[\x01-\x7f]([^\x00-\x1f\x7f-\xff]+)/);
+            if (!m) continue;
+            let id = m[1];
+            let titleName = m[2].trim();
+            if (titleName.includes('"')) {
+                titleName = titleName.split('"')[0].trim();
+            }
+            titleName = titleName.replace(/^[^a-zA-Z0-9#]+/, '').trim();
+
+            if (!seen[id] && titleName && titleName.length > 1) {
+                seen[id] = true;
+                items.push({
+                    title: titleName,
+                    url: "/en/title/" + id,
+                    thumbnailUrl: "https://img.mangamillion.shueisha.co.jp/jpn/image/original_title_cover/" + id + ".webp|Referer=" + this.baseUrl + "/",
+                    status: 1
+                });
+            }
+        }
+
+        // Fallback for any items without clean title match
+        let coverMatches = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/(\d+)\.webp[^\x00-\x1f"'\s]*/g) || [];
+        for (let i = 0; i < coverMatches.length; i++) {
+            let fullCoverUrl = coverMatches[i];
             let idMatch = fullCoverUrl.match(/original_title_cover\/(\d+)\./);
             if (!idMatch) continue;
             let id = idMatch[1];
-            if (seen[id]) continue;
-            seen[id] = true;
-
-            items.push({
-                title: "Manga #" + id,
-                url: "/en/title/" + id,
-                thumbnailUrl: fullCoverUrl + "|Referer=" + this.baseUrl + "/",
-                status: 1
-            });
+            if (!seen[id]) {
+                seen[id] = true;
+                items.push({
+                    title: "Manga #" + id,
+                    url: "/en/title/" + id,
+                    thumbnailUrl: fullCoverUrl + "|Referer=" + this.baseUrl + "/",
+                    status: 1
+                });
+            }
         }
 
         return { items: items, totalPages: 1 };
@@ -73,48 +96,42 @@ var source = {
 
     getMangaDetails: function(mangaUrl) {
         let titleId = this.extractTitleId(mangaUrl);
-        let token = this.ensureToken();
 
-        let url = this.apiUrl + "/api/title_detail?service_language=en&avif_enable=false&original_title_id=" + titleId;
-        let response = this.fetchApi(url, "GET", token);
-        if (!response || response.status !== 200) {
-            return { title: "Manga #" + titleId, url: mangaUrl };
+        // Fetch HTML page first for clean title, author, cover, description
+        let htmlRes = this.fetchApi(this.baseUrl + "/en/title/" + titleId, "GET");
+        if (htmlRes && htmlRes.status === 200) {
+            let html = htmlRes.body || "";
+            let titleTagMatch = html.match(/<title>([^<]+)<\/title>/i);
+            let titleTag = titleTagMatch ? titleTagMatch[1] : "";
+
+            let titleName = "";
+            let author = "";
+            if (titleTag.includes(" - ")) {
+                let parts = titleTag.split(" - ");
+                titleName = parts[0].trim();
+                if (parts[1]) author = parts[1].split("|")[0].trim();
+            }
+
+            let ogImageMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+            let coverUrl = ogImageMatch ? ogImageMatch[1].replace(/&amp;/g, '&') : "";
+
+            let metaDescMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
+            let description = metaDescMatch ? metaDescMatch[1].replace(/&#x27;/g, "'").replace(/&quot;/g, '"') : "";
+
+            if (titleName) {
+                return {
+                    title: titleName,
+                    url: mangaUrl,
+                    thumbnailUrl: coverUrl ? (coverUrl + "|Referer=" + this.baseUrl + "/") : "",
+                    author: author || "Unknown",
+                    status: 1,
+                    description: description,
+                    genre: ["Manga", "Shueisha"]
+                };
+            }
         }
 
-        let body = response.body || "";
-        let coverUrl = "";
-        let coverMatch = body.match(/https:\/\/img\.mangamillion\.shueisha\.co\.jp\/jpn\/image\/original_title_cover\/[^\x00-\x1f"'\s]+/);
-        if (coverMatch) coverUrl = coverMatch[0];
-
-        let titleName = "";
-        let author = "";
-
-        // Extract Title and Author from title_detail protobuf:
-        // original_title_cover/...webp?... \x12{len}{TitleName}\x1a{len}{AuthorName}
-        let titleAuthorMatch = body.match(/original_title_cover\/[^\x12]+\x12([\s\S])([^\x1a]+)\x1a([\s\S])([^\x22\x3a]+)/);
-        if (titleAuthorMatch && titleAuthorMatch[2]) {
-            titleName = titleAuthorMatch[2].trim();
-            author = titleAuthorMatch[4] ? titleAuthorMatch[4].trim() : "";
-        }
-
-        let description = "";
-        let descMatch = body.match(/:\x83\x03([\s\S]+?)(?=Bwhttps|\x12|\x1a|$)/) || body.match(/([A-Z][^\x00-\x1f]{50,1500}?)(?=Bwhttps|$)/);
-        if (descMatch && descMatch[1]) description = descMatch[1].trim();
-
-        let genres = [];
-        for (let i = 0; i < this.genres.length; i++) {
-            if (body.includes(this.genres[i])) genres.push(this.genres[i]);
-        }
-
-        return {
-            title: titleName || ("Manga #" + titleId),
-            url: mangaUrl,
-            thumbnailUrl: coverUrl ? (coverUrl + "|Referer=" + this.baseUrl + "/") : "",
-            author: author,
-            status: 1,
-            description: description,
-            genre: genres
-        };
+        return { title: "Manga #" + titleId, url: mangaUrl, status: 1 };
     },
 
     getChapterList: function(mangaUrl) {
@@ -129,20 +146,28 @@ var source = {
         let chapters = [];
         let seen = {};
 
-        let strs = this.extractStrings(body);
-        for (let i = 0; i < strs.length; i++) {
-            let txt = strs[i];
-            if (/^Chapter\s+\d+/i.test(txt) || /^#\d+/i.test(txt)) {
-                if (!seen[txt]) {
-                    seen[txt] = true;
-                    let chapNumMatch = txt.match(/\d+/);
-                    let chapNum = chapNumMatch ? chapNumMatch[0] : (chapters.length + 1);
-                    chapters.push({
-                        name: txt,
-                        url: "/en/title/" + titleId + "/chapter/" + chapNum,
-                        dateUpload: 0
-                    });
-                }
+        let blocks = body.split(/#\d{3,4}/);
+        for (let i = 1; i < blocks.length; i++) {
+            let block = blocks[i];
+
+            let nameMatch = block.match(/\x12([^\x00-\x1f\x7f-\xff]{1,120})/);
+            let name = nameMatch ? nameMatch[1].trim() : ("Chapter " + i);
+            if (name.includes('"')) {
+                name = name.split('"')[0].trim();
+            }
+            name = name.replace(/^[^a-zA-Z0-9#]+/, '').trim();
+
+            let thumbMatch = block.match(/service_chapter_thumbnail\/(\d+)\.webp/);
+            let chapId = thumbMatch ? thumbMatch[1] : i.toString();
+
+            if (name && !seen[chapId]) {
+                seen[chapId] = true;
+                chapters.push({
+                    name: name,
+                    url: "/en/title/" + titleId + "/chapter/" + chapId,
+                    dateUpload: 0,
+                    chapterNumber: i
+                });
             }
         }
 
@@ -181,16 +206,17 @@ var source = {
         let response = this.fetchApi(url, "POST");
         if (response && response.status === 200) {
             let body = response.body || "";
-            if (body.length >= 91) {
-                let len = body.charCodeAt(4);
-                if (len > 30 && len < 200 && body.length >= 5 + len) {
-                    this.token = body.substring(5, 5 + len);
+            let strs = this.extractStrings(body);
+            for (let i = 0; i < strs.length; i++) {
+                let s = strs[i];
+                if (s.length > 20 && /^[A-Za-z0-9_\-]+$/.test(s)) {
+                    this.token = s;
                     return this.token;
                 }
             }
-            let match = body.match(/([A-Za-z0-9_\-]{80,95})/);
+            let match = body.match(/[A-Za-z0-9_\-]{30,}/);
             if (match) {
-                this.token = match[1];
+                this.token = match[0];
                 return this.token;
             }
         }
