@@ -2,8 +2,9 @@ var source = {
     name: "VoraToon",
     baseUrl: "https://v1.voratoon.com",
     apiUrl: "https://api.voratoon.com",
+    iconUrl: "https://v1.voratoon.com/logo/Logo%20VT%201.png",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#6366f1",
@@ -21,7 +22,7 @@ var source = {
 
     getPopularManga: function(page) {
         let p = page && page > 0 ? page : 1;
-        let url = this.apiUrl + "/popular?page=" + p + "&limit=" + this.pageSize;
+        let url = this.apiUrl + "/series?sort=views&page=" + p + "&limit=" + this.pageSize;
         let res = this.fetchJson(url);
         if (!res || !res.data) return { items: [], totalPages: 1 };
 
@@ -29,7 +30,7 @@ var source = {
         let list = Array.isArray(res.data) ? res.data : [];
         for (let i = 0; i < list.length; i++) {
             let item = list[i];
-            let d = item.$attributes || item.data || item;
+            let d = item.data || item.$attributes || item;
             let title = d.title || d.name || "";
             let slug = d.slug || "";
             let cover = d.coverImage || "";
@@ -39,7 +40,7 @@ var source = {
                 items.push({
                     title: title.trim(),
                     url: "/series/" + slug,
-                    thumbnailUrl: cover,
+                    thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
                     status: d.status === "completed" ? 2 : 1
                 });
             }
@@ -70,7 +71,7 @@ var source = {
                 items.push({
                     title: title.trim(),
                     url: "/series/" + slug,
-                    thumbnailUrl: cover,
+                    thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
                     status: d.status === "completed" ? 2 : 1
                 });
             }
@@ -104,7 +105,7 @@ var source = {
                 items.push({
                     title: title.trim(),
                     url: "/series/" + slug,
-                    thumbnailUrl: cover,
+                    thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
                     status: d.status === "completed" ? 2 : 1
                 });
             }
@@ -138,7 +139,7 @@ var source = {
         return {
             title: title.trim(),
             url: mangaUrl,
-            thumbnailUrl: cover,
+            thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
             author: author,
             status: status,
             description: description,
@@ -196,7 +197,7 @@ var source = {
             if (dir === firstDir) {
                 if (!seen[url]) {
                     seen[url] = true;
-                    pages.push(url);
+                    pages.push(url + "|Referer=" + this.baseUrl + "/");
                 }
             } else if (pages.length > 0) {
                 break;
