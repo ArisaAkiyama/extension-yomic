@@ -4,7 +4,7 @@ var source = {
     apiUrl: "https://api.voratoon.com",
     iconUrl: "https://v1.voratoon.com/logo/Logo%20VT%201.png",
     language: "id",
-    version: "1.0.2",
+    version: "1.0.3",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#6366f1",
@@ -161,7 +161,7 @@ var source = {
         for (let i = 0; i < list.length; i++) {
             let ch = list[i];
             let cd = ch.data || {};
-            let index = cd.index || (i + 1);
+            let index = cd.index !== undefined && cd.index !== null ? cd.index : (list.length - i);
             let name = cd.title ? ("Chapter " + index + ": " + cd.title) : ("Chapter " + index);
             let dateUpload = ch.createdAt ? new Date(ch.createdAt).getTime() : 0;
 
@@ -177,33 +177,40 @@ var source = {
     },
 
     getPageList: function(chapterUrl) {
+        let clean = chapterUrl.replace(/\/+$/, "");
+        let parts = clean.split("/");
+        let chapterIndex = parts[parts.length - 1];
+        let slug = parts.length > 2 && parts[parts.length - 2] === "chapter" ? parts[parts.length - 3] : parts[1];
+
+        // 1. Fetch images directly via REST API endpoint
+        let apiUrl = this.apiUrl + "/series/" + slug + "/chapters/" + chapterIndex;
+        let res = this.fetchJson(apiUrl);
+        if (res && res.data) {
+            let d = res.data.data || res.data;
+            let images = d.images || [];
+            if (Array.isArray(images) && images.length > 0) {
+                return images.map(img => img + "|Referer=" + this.baseUrl + "/");
+            }
+        }
+
+        // 2. Fallback: Parse HTML
         let fullUrl = chapterUrl.startsWith("http") ? chapterUrl : (this.baseUrl + chapterUrl);
         let response = this.fetchApi(fullUrl, "GET");
         if (!response || response.status !== 200) return [];
 
         let html = response.body || (typeof response.text === 'function' ? response.text() : "");
-        let re = /https?:\/\/(?:cdn\.voratoon\.com|cdn\.uqni\.net|cvr\.voratoon\.id)\/[^\x00-\x1f"'<>\s\\]+\.(?:jpg|jpeg|png|webp)/gi;
+        let re = /https?:\/\/(?:cdn\.voratoon\.com|cdn\.uqni\.net)\/[^\x00-\x1f"'<>\s\\]+\.(?:jpg|jpeg|png|webp)/gi;
         let matches = html.match(re) || [];
 
         let pages = [];
         let seen = {};
-        let firstDir = "";
-
         for (let i = 0; i < matches.length; i++) {
             let url = matches[i].replace(/\\u0026/g, '&').replace(/&amp;/g, '&');
             if (url.includes('/logo/') || url.includes('/icons/') || url.includes('/ads/') || url.includes('/cover/') || url.includes('/background/')) continue;
 
-            let lastSlash = url.lastIndexOf('/');
-            let dir = url.substring(0, lastSlash + 1);
-            if (!firstDir) firstDir = dir;
-
-            if (dir === firstDir) {
-                if (!seen[url]) {
-                    seen[url] = true;
-                    pages.push(url + "|Referer=" + this.baseUrl + "/");
-                }
-            } else if (pages.length > 0) {
-                break;
+            if (!seen[url]) {
+                seen[url] = true;
+                pages.push(url + "|Referer=" + this.baseUrl + "/");
             }
         }
 
