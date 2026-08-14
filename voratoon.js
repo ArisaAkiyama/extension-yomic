@@ -4,14 +4,14 @@ var source = {
     apiUrl: "https://api.voratoon.com",
     iconUrl: "https://v1.voratoon.com/logo/Logo%20VT%201.png",
     language: "id",
-    version: "1.0.1",
+    version: "1.0.2",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#6366f1",
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: true,
-    pageSize: 24,
+    pageSize: 30,
 
     genres: [
         "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Harem",
@@ -22,7 +22,7 @@ var source = {
 
     getPopularManga: function(page) {
         let p = page && page > 0 ? page : 1;
-        let url = this.apiUrl + "/series?sort=views&page=" + p + "&limit=" + this.pageSize;
+        let url = this.apiUrl + "/series?sort=views&page=" + p;
         let res = this.fetchJson(url);
         if (!res || !res.data) return { items: [], totalPages: 1 };
 
@@ -47,13 +47,14 @@ var source = {
         }
 
         let meta = res.meta || {};
-        let totalPages = meta.totalPages || 1;
+        let total = meta.total || 10333;
+        let totalPages = Math.max(1, Math.ceil(total / (this.pageSize || 30)));
         return { items: items, totalPages: totalPages };
     },
 
     getLatestUpdates: function(page) {
         let p = page && page > 0 ? page : 1;
-        let url = this.apiUrl + "/series?page=" + p + "&limit=" + this.pageSize;
+        let url = this.apiUrl + "/series?page=" + p;
         let res = this.fetchJson(url);
         if (!res || !res.data) return { items: [], totalPages: 1 };
 
@@ -78,14 +79,15 @@ var source = {
         }
 
         let meta = res.meta || {};
-        let totalPages = meta.totalPages || 1;
+        let total = meta.total || 10333;
+        let totalPages = Math.max(1, Math.ceil(total / (this.pageSize || 30)));
         return { items: items, totalPages: totalPages };
     },
 
     getSearchManga: function(query, page) {
         let p = page && page > 0 ? page : 1;
         let q = (query || "").trim();
-        let url = this.apiUrl + "/series?page=" + p + "&limit=" + this.pageSize;
+        let url = this.apiUrl + "/series?page=" + p;
         if (q) url += "&title=" + encodeURIComponent(q);
 
         let res = this.fetchJson(url);
@@ -112,7 +114,8 @@ var source = {
         }
 
         let meta = res.meta || {};
-        let totalPages = meta.totalPages || 1;
+        let total = meta.total || items.length;
+        let totalPages = Math.max(1, Math.ceil(total / (this.pageSize || 30)));
         return { items: items, totalPages: totalPages };
     },
 
