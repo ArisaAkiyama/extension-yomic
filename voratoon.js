@@ -4,14 +4,14 @@ var source = {
     apiUrl: "https://api.voratoon.com",
     iconUrl: "https://v1.voratoon.com/logo/voratoon-icon-512.png",
     language: "id",
-    version: "1.0.4",
+    version: "1.0.5",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#6366f1",
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: true,
-    pageSize: 30,
+    pageSize: 14,
 
     genres: [
         "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Harem",
@@ -20,16 +20,34 @@ var source = {
         "Sports", "Supernatural", "Thriller"
     ],
 
-    getPopularManga: function(page) {
+    fetchSeriesPagination: function(urlBase, page) {
+        let pageSize = this.pageSize || 14;
         let p = page && page > 0 ? page : 1;
-        let url = this.apiUrl + "/series?sort=views&page=" + p;
-        let res = this.fetchJson(url);
-        if (!res || !res.data) return { items: [], totalPages: 1 };
+        let startIdx = (p - 1) * pageSize;
+        let endIdx = p * pageSize;
+
+        let startApiPage = Math.floor(startIdx / 10) + 1;
+        let endApiPage = Math.floor((endIdx - 1) / 10) + 1;
+
+        let combined = [];
+        let total = 10339;
+
+        for (let apiP = startApiPage; apiP <= endApiPage; apiP++) {
+            let sep = urlBase.indexOf("?") >= 0 ? "&" : "?";
+            let res = this.fetchJson(urlBase + sep + "page=" + apiP);
+            if (res && res.data) {
+                if (res.meta && res.meta.total) total = res.meta.total;
+                let list = Array.isArray(res.data) ? res.data : [];
+                combined = combined.concat(list);
+            }
+        }
+
+        let offsetInFirstApiPage = startIdx % 10;
+        let sliced = combined.slice(offsetInFirstApiPage, offsetInFirstApiPage + pageSize);
 
         let items = [];
-        let list = Array.isArray(res.data) ? res.data : [];
-        for (let i = 0; i < list.length; i++) {
-            let item = list[i];
+        for (let i = 0; i < sliced.length; i++) {
+            let item = sliced[i];
             let d = item.data || item.$attributes || item;
             let title = d.title || d.name || "";
             let slug = d.slug || "";
@@ -46,77 +64,23 @@ var source = {
             }
         }
 
-        let meta = res.meta || {};
-        let total = meta.total || 10333;
-        let totalPages = Math.max(1, Math.ceil(total / (this.pageSize || 30)));
+        let totalPages = Math.max(1, Math.ceil(total / pageSize));
         return { items: items, totalPages: totalPages };
+    },
+
+    getPopularManga: function(page) {
+        return this.fetchSeriesPagination(this.apiUrl + "/series?sort=views", page);
     },
 
     getLatestUpdates: function(page) {
-        let p = page && page > 0 ? page : 1;
-        let url = this.apiUrl + "/series?page=" + p;
-        let res = this.fetchJson(url);
-        if (!res || !res.data) return { items: [], totalPages: 1 };
-
-        let items = [];
-        let list = Array.isArray(res.data) ? res.data : [];
-        for (let i = 0; i < list.length; i++) {
-            let item = list[i];
-            let d = item.data || item.$attributes || item;
-            let title = d.title || d.name || "";
-            let slug = d.slug || "";
-            let cover = d.coverImage || "";
-            if (cover && !cover.startsWith("http")) cover = "https://cvr.voratoon.id/prod/" + cover;
-
-            if (title && slug) {
-                items.push({
-                    title: title.trim(),
-                    url: "/series/" + slug,
-                    thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
-                    status: d.status === "completed" ? 2 : 1
-                });
-            }
-        }
-
-        let meta = res.meta || {};
-        let total = meta.total || 10333;
-        let totalPages = Math.max(1, Math.ceil(total / (this.pageSize || 30)));
-        return { items: items, totalPages: totalPages };
+        return this.fetchSeriesPagination(this.apiUrl + "/series", page);
     },
 
     getSearchManga: function(query, page) {
-        let p = page && page > 0 ? page : 1;
         let q = (query || "").trim();
-        let url = this.apiUrl + "/series?page=" + p;
-        if (q) url += "&title=" + encodeURIComponent(q);
-
-        let res = this.fetchJson(url);
-        if (!res || !res.data) return { items: [], totalPages: 1 };
-
-        let items = [];
-        let list = Array.isArray(res.data) ? res.data : [];
-        for (let i = 0; i < list.length; i++) {
-            let item = list[i];
-            let d = item.data || item.$attributes || item;
-            let title = d.title || d.name || "";
-            let slug = d.slug || "";
-            let cover = d.coverImage || "";
-            if (cover && !cover.startsWith("http")) cover = "https://cvr.voratoon.id/prod/" + cover;
-
-            if (title && slug) {
-                items.push({
-                    title: title.trim(),
-                    url: "/series/" + slug,
-                    thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
-                    status: d.status === "completed" ? 2 : 1
-                });
-            }
-        }
-
-        let meta = res.meta || {};
-        let total = meta.total || items.length;
-        let totalPages = Math.max(1, Math.ceil(total / (this.pageSize || 30)));
-        return { items: items, totalPages: totalPages };
+        let url = this.apiUrl + "/series";
+        if (q) url += "?title=" + encodeURIComponent(q);
+        return this.fetchSeriesPagination(url, page);
     },
 
     getMangaList: function(page, status, genre, type) {
