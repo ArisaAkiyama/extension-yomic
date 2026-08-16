@@ -4,7 +4,7 @@ var source = {
     apiUrl: "https://api.voratoon.com",
     iconUrl: "https://v1.voratoon.com/logo/voratoon-icon-512.png",
     language: "id",
-    version: "1.0.5",
+    version: "1.0.6",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#6366f1",
@@ -153,7 +153,7 @@ var source = {
             let d = res.data.data || res.data;
             let images = d.images || [];
             if (Array.isArray(images) && images.length > 0) {
-                return images.map(img => img + "|Referer=" + this.baseUrl + "/");
+                return images.map(img => img + "|Referer=" + this.baseUrl + "/|Origin=" + this.baseUrl);
             }
         }
 
@@ -174,7 +174,7 @@ var source = {
 
             if (!seen[url]) {
                 seen[url] = true;
-                pages.push(url + "|Referer=" + this.baseUrl + "/");
+                pages.push(url + "|Referer=" + this.baseUrl + "/|Origin=" + this.baseUrl);
             }
         }
 
