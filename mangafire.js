@@ -236,7 +236,7 @@ var source = {
         }
 
         let hasNext = data.meta && data.meta.hasNext;
-        let totalPages = (hasNext || items.length >= this.pageSize) ? page + 1 : page;
+        let totalPages = (data.meta && data.meta.lastPage) ? data.meta.lastPage : ((hasNext || items.length >= this.pageSize) ? page + 1 : page);
 
         return { items: items, totalPages: totalPages };
     },
