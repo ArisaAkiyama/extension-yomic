@@ -1,6 +1,7 @@
 var source = {
     name: "MangaFire",
     baseUrl: "https://mangafire.to",
+    iconUrl: "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/icons/mangafire.png",
     language: "en",
     version: "1.2.3",
     description: "MangaFire English extension with VRF signed API architecture",

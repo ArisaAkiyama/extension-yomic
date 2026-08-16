@@ -7,7 +7,7 @@ var source = {
     version: "1.0.6",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
-    iconBackground: "#6366f1",
+    iconBackground: "#ea580c",
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: true,
