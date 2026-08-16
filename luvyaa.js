@@ -2,6 +2,7 @@ var source = {
     name: "Luvyaa",
     baseUrl: "https://v4.luvyaa.co",
     apiUrl: "https://v4.luvyaa.co",
+    iconUrl: "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/icons/luvyaa.png",
     language: "id",
     version: "1.0.0",
     description: "Baca komik Bahasa Indonesia dari Luvyaa",
