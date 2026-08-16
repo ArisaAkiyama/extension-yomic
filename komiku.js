@@ -209,8 +209,7 @@ var source = {
             genres.push(el.text());
         }
 
-        let nameEl = doc.querySelector("span[itemprop='name']");
-        let titleEl = nameEl || doc.querySelector("h1");
+        let titleEl = doc.querySelector("h1 span[itemprop='name']") || doc.querySelector("h1");
         let title = this.cleanTitle(titleEl ? titleEl.text() : "");
 
         return {
