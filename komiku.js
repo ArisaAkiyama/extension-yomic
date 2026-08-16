@@ -3,7 +3,7 @@ var source = {
     baseUrl: "https://komiku.org",
     apiUrl: "https://api.komiku.org",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Komiku extension implemented in JavaScript using Jint Engine",
     author: "DesktopKomik",
     iconBackground: "#2E7D32",
@@ -209,9 +209,12 @@ var source = {
             genres.push(el.text());
         }
 
-        let titleEl = doc.querySelector("h1");
+        let nameEl = doc.querySelector("span[itemprop='name']");
+        let titleEl = nameEl || doc.querySelector("h1");
+        let title = this.cleanTitle(titleEl ? titleEl.text() : "");
+
         return {
-            title: titleEl ? titleEl.text() : "",
+            title: title,
             url: url,
             thumbnailUrl: thumbnailUrl,
             author: author,
@@ -219,6 +222,16 @@ var source = {
             description: description,
             genre: genres
         };
+    },
+
+    cleanTitle: function(title) {
+        if (!title) return "";
+        let clean = title.trim();
+        // Remove "Komik " or "Manga/Manhwa/Manhua " prefix
+        clean = clean.replace(/^(?:komik|manga|manhwa|manhua)\s+/i, "");
+        // Remove trailing " Indo", " Bahasa Indonesia", " Sub Indo"
+        clean = clean.replace(/\s+(?:indo|bahasa indonesia|sub indo)$/i, "");
+        return clean.trim();
     },
 
     getChapterList: function(mangaUrl) {
@@ -293,7 +306,7 @@ var source = {
                 }
                 
                 mangas.push({
-                    title: titleEl.text(),
+                    title: this.cleanTitle(titleEl.text()),
                     url: relativeUrl,
                     thumbnailUrl: imgEl ? imgEl.absUrl("src") : ""
                 });
@@ -333,7 +346,7 @@ var source = {
                 }
 
                 mangas.push({
-                    title: titleEl.text().trim(),
+                    title: this.cleanTitle(titleEl.text()),
                     url: relativeUrl,
                     thumbnailUrl: thumbnailUrl,
                     status: status
