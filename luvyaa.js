@@ -4,14 +4,14 @@ var source = {
     apiUrl: "https://v4.luvyaa.co",
     iconUrl: "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/icons/luvyaa.png",
     language: "id",
-    version: "1.0.0",
+    version: "1.0.1",
     description: "Baca komik Bahasa Indonesia dari Luvyaa",
     author: "DesktopKomik",
     iconBackground: "#d20f39",
     iconForeground: "#ffffff",
     isNsfw: false,
     isHasMorePages: true,
-    pageSize: 30,
+    pageSize: 18,
 
     genres: [
         "Action", "Adaptation", "Adult", "Adventure", "Age Gap", "BDSM", "Childhood Friends",
@@ -79,11 +79,11 @@ var source = {
     getDirectoryPage: function(page, query, status, genre, type, order) {
         page = Math.max(1, page || 1);
         let url = `${this.baseUrl}/manga/`;
-        if (page > 1) {
-            url += `page/${page}/`;
-        }
 
         let params = [];
+        if (page > 1) {
+            params.push("page=" + page);
+        }
         if (query) params.push("s=" + encodeURIComponent(query));
         if (status) params.push("status=" + encodeURIComponent(status));
 
@@ -175,8 +175,12 @@ var source = {
             });
         }
 
-        let nextEl = doc.querySelector("a.next.page-numbers");
-        let totalPages = nextEl || items.length >= this.pageSize ? page + 1 : page;
+        let isFiltered = Boolean(query || status || genre || type);
+        let totalPages = 309;
+        if (isFiltered) {
+            let nextEl = doc.querySelector("a.next.page-numbers, .pagination a.next");
+            totalPages = (nextEl || items.length >= this.pageSize) ? page + 1 : page;
+        }
 
         return {
             items: items,
