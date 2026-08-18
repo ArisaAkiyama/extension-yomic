@@ -4,7 +4,7 @@ var source = {
     apiUrl: "https://api.voratoon.com",
     iconUrl: "https://v1.voratoon.com/logo/voratoon-icon-512.png",
     language: "id",
-    version: "1.0.6",
+    version: "1.0.7",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#ea580c",
@@ -73,7 +73,64 @@ var source = {
     },
 
     getLatestUpdates: function(page) {
-        return this.fetchSeriesPagination(this.apiUrl + "/series", page);
+        page = Math.max(1, page || 1);
+        let url = this.baseUrl + "/updates?page=" + page;
+        let response = fetch(url);
+        if (response.status !== 200) {
+            return this.fetchSeriesPagination(this.apiUrl + "/series", page);
+        }
+
+        let doc = Html.parse(response.body, url);
+        let articles = doc.querySelectorAll("article, .update-series-card_card__KE0nY, div.updates-grid-view article");
+        let items = [];
+
+        for (let i = 0; i < articles.length; i++) {
+            let art = articles[i];
+            let linkEl = art.querySelector("a.update-series-card_title__VNuuc, a.update-series-card_cover___Z465, a[href^='/series/']");
+            if (!linkEl) continue;
+
+            let href = linkEl.attr("href");
+            if (!href || href.indexOf("/chapter/") >= 0) continue;
+
+            let relativeUrl = href;
+            if (href.startsWith(this.baseUrl)) {
+                relativeUrl = href.substring(this.baseUrl.length);
+            }
+
+            let title = "";
+            let titleEl = art.querySelector("a.update-series-card_title__VNuuc, .update-series-card_title");
+            if (titleEl) {
+                title = titleEl.text().trim();
+            }
+            if (!title) {
+                let imgAlt = art.querySelector("img");
+                if (imgAlt && imgAlt.attr("alt")) {
+                    title = imgAlt.attr("alt").replace(/^Cover\s+/i, "").trim();
+                }
+            }
+            if (!title) title = linkEl.text().trim();
+
+            let imgEl = art.querySelector("img.update-series-card_mainCover__sVGJu, img[src*='/cover/'], img");
+            let cover = "";
+            if (imgEl) {
+                cover = imgEl.attr("src") || imgEl.attr("data-src") || "";
+            }
+
+            if (title && relativeUrl) {
+                items.push({
+                    title: title.trim(),
+                    url: relativeUrl,
+                    thumbnailUrl: cover ? (cover + "|Referer=" + this.baseUrl + "/") : "",
+                    status: 1
+                });
+            }
+        }
+
+        let totalPages = items.length >= 20 ? page + 1 : page;
+        return {
+            items: items,
+            totalPages: totalPages
+        };
     },
 
     getSearchManga: function(query, page) {
