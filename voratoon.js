@@ -1,10 +1,10 @@
 var source = {
     name: "VoraToon",
-    baseUrl: "https://v1.voratoon.com",
+    baseUrl: "https://v2.voratoon.com",
     apiUrl: "https://api.voratoon.com",
-    iconUrl: "https://v1.voratoon.com/logo/voratoon-icon-512.png",
+    iconUrl: "https://v2.voratoon.com/logo/voratoon-icon-512.png",
     language: "id",
-    version: "1.0.8",
+    version: "1.0.9",
     description: "Baca Komik Online Bahasa Indonesia - Manga, Manhwa, Manhua Terbaru",
     author: "DesktopKomik",
     iconBackground: "#ea580c",
