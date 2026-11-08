@@ -5,7 +5,7 @@ var cachedApiSession = null;
 
 var source = {
     name: "Softkomik",
-    iconUrl: "https://softkomik.app/favicon.ico",
+    iconUrl: "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/icons/softkomik.png",
     baseUrl: "https://softkomik.app",
     apiUrl: "https://v2.softdevices.my.id",
     coverBaseUrl: "https://cover.softdevices.my.id/softkomik-cover",
