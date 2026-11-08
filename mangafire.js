@@ -1,6 +1,7 @@
 var source = {
     name: "MangaFire",
     baseUrl: "https://mangafire.to",
+    iconUrl: "https://raw.githubusercontent.com/ArisaAkiyama/extension-yomic/main/icons/mangafire.png",
     language: "en",
     version: "1.2.3",
     description: "MangaFire English extension with VRF signed API architecture",
@@ -162,8 +163,9 @@ var source = {
         try {
             let response = fetch(finalUrl, {
                 headers: {
-                    "Accept": "application/json",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                    "Accept": "application/json, text/plain, */*",
+                    "Referer": this.baseUrl + "/",
+                    "X-Requested-With": "XMLHttpRequest"
                 }
             });
             if (!response || response.status !== 200) return null;
@@ -235,7 +237,7 @@ var source = {
         }
 
         let hasNext = data.meta && data.meta.hasNext;
-        let totalPages = (hasNext || items.length >= this.pageSize) ? page + 1 : page;
+        let totalPages = (data.meta && data.meta.lastPage) ? data.meta.lastPage : ((hasNext || items.length >= this.pageSize) ? page + 1 : page);
 
         return { items: items, totalPages: totalPages };
     },

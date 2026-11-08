@@ -3,14 +3,14 @@ var source = {
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
-    version: "1.0.7",
+    version: "1.0.8",
     description: "Baca komik Manga, Manhwa, dan Manhua Bahasa Indonesia dari KomikStation",
     author: "DesktopKomik",
     iconBackground: "#0f172a",
     iconForeground: "#38bdf8",
     isNsfw: false,
     isHasMorePages: true,
-    pageSize: 20,
+    pageSize: 30,
 
     genres: [
         "Action", "Adult", "Adventure", "Boys' Love", "Comedy", "Cooking", "Crime",
@@ -180,8 +180,12 @@ var source = {
             });
         }
 
-        let nextEl = doc.querySelector(".hpage a, .hpage a.r, .pagination a.next, a.next, a.next.page-numbers");
-        let totalPages = (nextEl || items.length >= 10) ? page + 1 : page;
+        let isFiltered = Boolean(query || status || genre || type);
+        let totalPages = 313;
+        if (isFiltered) {
+            let nextEl = doc.querySelector(".hpage a, .hpage a.r, .pagination a.next, a.next, a.next.page-numbers");
+            totalPages = (nextEl || items.length >= this.pageSize) ? page + 1 : page;
+        }
 
         return {
             items: items,
