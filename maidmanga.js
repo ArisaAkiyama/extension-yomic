@@ -1,6 +1,7 @@
 var source = {
     name: "MaidManga",
     baseUrl: "https://www.maid.my.id",
+    iconUrl: "https://www.google.com/s2/favicons?domain=maid.my.id&sz=128",
     language: "id",
     version: "1.0.5",
     description: "MaidManga Indonesian extension implemented in JavaScript using ZManga/WordPress pages",

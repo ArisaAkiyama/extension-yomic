@@ -1,5 +1,6 @@
 var source = {
     name: "Mangabat",
+    iconUrl: "https://www.google.com/s2/favicons?domain=mangabat.com&sz=128",
     baseUrl: "https://www.mangabats.com",
     language: "en",
     version: "1.0.4",

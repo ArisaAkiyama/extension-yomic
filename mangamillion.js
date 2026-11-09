@@ -1,6 +1,7 @@
 var source = {
     name: "MangaMillion",
     baseUrl: "https://mangamillion.shueisha.co.jp",
+    iconUrl: "https://www.google.com/s2/favicons?domain=shueisha.co.jp&sz=128",
     apiUrl: "https://api.mangamillion.shueisha.co.jp",
     language: "en",
     version: "1.0.0",

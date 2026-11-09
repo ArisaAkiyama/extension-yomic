@@ -1,5 +1,6 @@
 var source = {
     name: "MangaDex",
+    iconUrl: "https://www.google.com/s2/favicons?domain=mangadex.org&sz=128",
     baseUrl: "https://mangadex.org",
     apiUrl: "https://api.mangadex.org",
     uploadsUrl: "https://uploads.mangadex.org",

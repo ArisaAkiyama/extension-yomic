@@ -1,6 +1,7 @@
 var source = {
     name: "Ryzukomik",
     baseUrl: "https://baca.ryzukomik.space",
+    iconUrl: "https://www.google.com/s2/favicons?domain=baca.ryzukomik.space&sz=128",
     apiUrl: "https://baca.ryzukomik.space",
     language: "id",
     version: "2.0.8",

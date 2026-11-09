@@ -1,5 +1,6 @@
 var source = {
     name: "KomikStation",
+    iconUrl: "https://www.google.com/s2/favicons?domain=komikstation.org&sz=128",
     baseUrl: "https://komikstation.org",
     apiUrl: "https://komikstation.org",
     language: "id",
