@@ -1,5 +1,6 @@
 var source = {
     name: "Aarlas",
+    iconUrl: "https://www.arlas.online/favicon.ico",
     baseUrl: "https://www.arlas.online",
     apiUrl: "https://www.arlas.online",
     language: "id",

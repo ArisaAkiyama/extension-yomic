@@ -1,5 +1,6 @@
 var source = {
     name: "ManhwaIndo",
+    iconUrl: "https://manhwaindo.id/favicon.svg",
     baseUrl: "https://www.manhwaindo.my",
     language: "id",
     version: "1.1.4",

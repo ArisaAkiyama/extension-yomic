@@ -1,6 +1,7 @@
 var source = {
     name: "OkyyKomik",
     baseUrl: "https://www.okyykomik.my.id",
+    iconUrl: "https://www.google.com/s2/favicons?domain=okyykomik.my.id&sz=128",
     language: "id",
     version: "1.0.1",
     description: "OkyyKomik Indonesian extension implemented in JavaScript.",

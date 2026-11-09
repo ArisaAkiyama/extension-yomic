@@ -7,7 +7,7 @@ var source = {
     version: "1.0.3",
     description: "Baca komik Bahasa Indonesia dari Kiryuu",
     author: "DesktopKomik",
-    iconUrl: "https://v7.kiryuu.to/wp-content/uploads/2021/10/cropped-logo-icon-kiryuu-1-456248-udlqjluy-194445-3fNc9Wlc-192x192.png",
+    iconUrl: "https://www.google.com/s2/favicons?domain=v7.kiryuu.to&sz=128",
     iconBackground: "#3b0764",
     iconForeground: "#f5d0fe",
     isNsfw: false,
@@ -183,7 +183,7 @@ var source = {
             
             let urlLower = src.toLowerCase();
             if (urlLower.indexOf("logo-kiryuu") !== -1 || urlLower.indexOf("cropped-logo") !== -1) continue;
-            if (urlLower.indexOf("banner-kiryuu") !== -1 || urlLower.indexOf("kiryuu.io") !== -1) continue;
+            if (urlLower.indexOf("banner-kiryuu") !== -1 || (urlLower.indexOf("kiryuu.io") !== -1 && urlLower.indexOf("cdn.kiryuu.io") === -1)) continue;
             if (urlLower.indexOf("avatar") !== -1 || urlLower.indexOf("gravatar.com") !== -1) continue;
 
             if (!seen[src]) {
@@ -329,9 +329,9 @@ var source = {
         url = (url || "").toLowerCase();
         if (url.indexOf(".gif") !== -1) return false;
         if (url.indexOf("logo-kiryuu") !== -1 || url.indexOf("cropped-logo") !== -1) return false;
-        if (url.indexOf("banner-kiryuu") !== -1 || url.indexOf("kiryuu.io") !== -1) return false;
+        if (url.indexOf("banner-kiryuu") !== -1 || (url.indexOf("kiryuu.io") !== -1 && url.indexOf("cdn.kiryuu.io") === -1)) return false;
         if (url.indexOf("/wp-content/uploads/") !== -1 && url.indexOf("cdn.uqni.net") === -1 && url.indexOf("yuucdn.com") === -1) return false;
-        return url.indexOf("cdn.uqni.net") !== -1 || url.indexOf("yuucdn.com") !== -1 || url.indexOf("/uploads/") !== -1;
+        return url.indexOf("cdn.uqni.net") !== -1 || url.indexOf("yuucdn.com") !== -1 || url.indexOf("cdn.kiryuu.io") !== -1 || url.indexOf("/uploads/") !== -1 || url.indexOf("/img/") !== -1;
     },
 
     extractMangaSlug: function(url) {

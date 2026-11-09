@@ -1,5 +1,6 @@
 var source = {
     name: "WeebCentral",
+    iconUrl: "https://weebcentral.com/favicon.ico",
     baseUrl: "https://weebcentral.com",
     language: "en",
     version: "1.0.3",

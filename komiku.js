@@ -1,5 +1,6 @@
 var source = {
     name: "Komiku",
+    iconUrl: "https://www.google.com/s2/favicons?domain=komiku.org&sz=128",
     baseUrl: "https://komiku.org",
     apiUrl: "https://api.komiku.org",
     language: "id",
@@ -161,7 +162,7 @@ var source = {
     },
 
     getMangaDetails: function(url) {
-        let fullUrl = this.baseUrl + url;
+        let fullUrl = url.indexOf('http') === 0 ? url : (this.baseUrl + (url.charAt(0) === '/' ? url : '/' + url));
         let response = fetch(fullUrl);
         if (response.status !== 200) return {};
 
@@ -234,25 +235,26 @@ var source = {
     },
 
     getChapterList: function(mangaUrl) {
-        let fullUrl = this.baseUrl + mangaUrl;
+        let fullUrl = mangaUrl.indexOf('http') === 0 ? mangaUrl : (this.baseUrl + (mangaUrl.charAt(0) === '/' ? mangaUrl : '/' + mangaUrl));
         let response = fetch(fullUrl);
         if (response.status !== 200) return [];
 
         let doc = Html.parse(response.body, fullUrl);
         let chapters = [];
         
-        let rows = doc.querySelectorAll("#Daftar_Chapter tr");
+        let rows = doc.querySelectorAll("tbody#daftarChapter tr, #Daftar_Chapter tr, #Chapter tr, tr");
         for (let row of rows) {
-            if (row.querySelector("td.judulseries")) {
-                let a = row.querySelector("a");
+            let judulEl = row.querySelector("td.judulseries");
+            if (judulEl) {
+                let a = judulEl.querySelector("a");
                 if (a) {
                     let href = a.attr("href");
                     let relativeUrl = href;
-                    if (href.startsWith(this.baseUrl)) {
+                    if (href && href.startsWith(this.baseUrl)) {
                         relativeUrl = href.substring(this.baseUrl.length);
                     }
                     
-                    let name = a.text();
+                    let name = a.text().trim();
                     let dateUpload = 0;
                     
                     let dateEl = row.querySelector("td.tanggalseries");
@@ -272,17 +274,16 @@ var source = {
     },
 
     getPageList: function(chapterUrl) {
-        let fullUrl = this.baseUrl + chapterUrl;
+        let fullUrl = chapterUrl.indexOf('http') === 0 ? chapterUrl : (this.baseUrl + (chapterUrl.charAt(0) === '/' ? chapterUrl : '/' + chapterUrl));
         let response = fetch(fullUrl);
         if (response.status !== 200) return [];
 
         let doc = Html.parse(response.body, fullUrl);
         let pages = [];
-        let imgEls = doc.querySelectorAll("#Baca_Komik img");
+        let imgEls = doc.querySelectorAll("#Baca_Komik img, div.content-wrap img.klazy, img.klazy");
         for (let img of imgEls) {
-            let src = img.absUrl("src");
-            if (!src) src = img.attr("src");
-            if (src) {
+            let src = img.absUrl("data-src") || img.absUrl("src") || img.attr("data-src") || img.attr("src");
+            if (src && !src.includes("komiku-promosi") && !src.includes("banner") && !src.includes("iklan")) {
                 pages.push(src);
             }
         }
